@@ -35,12 +35,11 @@
         .save-slot.active { border-color: #f1c40f; box-shadow: 0 0 15px #f1c40f; }
         .save-controls { display: none; gap: 20px; margin-bottom: 30px; }
         
-        /* GUN SELECTION UI */
         .gun-scroll-container {
             display: flex; gap: 30px; overflow-x: auto; width: 85%; padding: 40px 20px;
-            scroll-behavior: smooth; scrollbar-width: none; /* Hide scrollbar Firefox */
+            scroll-behavior: smooth; scrollbar-width: none;
         }
-        .gun-scroll-container::-webkit-scrollbar { display: none; } /* Hide scrollbar Chrome/Safari */
+        .gun-scroll-container::-webkit-scrollbar { display: none; }
         
         .gun-card {
             min-width: 300px; height: 400px; background: #111; border: 3px solid #444;
@@ -260,7 +259,6 @@
     const refreshCosts = [1, 2, 5, 10, 20];
     let tempBuff = { active: false, fr: 1, reg: 0 };
 
-    // Scroll Logic for Gun Selection
     const gunScroll = document.getElementById('gun-scroll');
     gunScroll.addEventListener('wheel', (e) => {
         e.preventDefault();
@@ -284,7 +282,6 @@
         list.innerHTML = '';
         controls.style.display = 'none';
         selectedSaveId = null;
-
         const saves = JSON.parse(localStorage.getItem('pixel_survivor_saves') || '{}');
         Object.keys(saves).forEach(id => {
             const div = document.createElement('div');
@@ -340,41 +337,26 @@
     window.enterGame = () => {
         const saves = JSON.parse(localStorage.getItem('pixel_survivor_saves') || '{}');
         const data = saves[selectedSaveId];
-        
         round = data.round;
         player = data.player;
         player.score = data.score;
-
-        // Apply Gun Stats
         if (selectedGun === 'm4a1') {
-            player.fireRate = 250;
-            player.baseDamage = 0.6;
-            player.range = 750;
-            player.bulletSpeed = 18;
-            player.pierce = 0;
-            player.isAuto = true;
+            player.fireRate = 250; player.baseDamage = 0.6; player.range = 750;
+            player.bulletSpeed = 18; player.pierce = 0; player.isAuto = true;
         } else if (selectedGun === 'awm') {
-            player.fireRate = 1000;
-            player.baseDamage = 5.0;
-            player.range = 3750;
-            player.bulletSpeed = 54; // 18 * 3
-            player.pierce = 999; // Infinite
-            player.isAuto = false;
+            player.fireRate = 1000; player.baseDamage = 5.0; player.range = 3750;
+            player.bulletSpeed = 54; player.pierce = 999; player.isAuto = false;
         }
-        
         document.getElementById('gun-menu').style.display = 'none';
         document.getElementById('exit-btn').style.display = 'block';
-
         if (round > 1) {
             gameState = "SHOP";
             document.getElementById('shop-overlay').style.display = 'flex';
             document.getElementById('cloud-ui').style.opacity = '0';
-            document.getElementById('cloud-ui').style.pointerEvents = 'none';
             updateShopUI();
         } else {
             gameState = "BATTLE";
             document.getElementById('cloud-ui').style.opacity = '1';
-            document.getElementById('cloud-ui').style.pointerEvents = 'auto';
             player.shieldMax = player.shield; 
             lastTick = Date.now();
         }
@@ -452,15 +434,9 @@
             player.highRound = currentBestRound;
             updateNameUI();
         }
-        
         if (selectedSaveId) {
             const saves = JSON.parse(localStorage.getItem('pixel_survivor_saves') || '{}');
-            saves[selectedSaveId] = {
-                id: selectedSaveId,
-                round: round,
-                score: player.score,
-                player: player
-            };
+            saves[selectedSaveId] = { id: selectedSaveId, round: round, score: player.score, player: player };
             localStorage.setItem('pixel_survivor_saves', JSON.stringify(saves));
         }
     }
@@ -540,7 +516,6 @@
     document.getElementById("confirm-btn").onclick = () => {
         shopOverlay.style.display = "none";
         document.getElementById('cloud-ui').style.opacity = '1';
-        document.getElementById('cloud-ui').style.pointerEvents = 'auto';
         gameState = "TRANSITION";
         player.shieldMax = player.shield; 
         setTimeout(() => { 
@@ -567,8 +542,7 @@
         if (gameState === "BATTLE") { 
             gameState = "PAUSED"; 
             pauseOverlay.style.display = "flex"; 
-        }
-        else if (gameState === "PAUSED") { 
+        } else if (gameState === "PAUSED") { 
             gameState = "BATTLE"; 
             pauseOverlay.style.display = "none"; 
             lastTick = Date.now(); 
@@ -600,11 +574,7 @@
     let mousePos = {x:0, y:0}, isMouseDown = false, lastShot = 0;
 
     canvas.onmousedown = () => {
-        if (gameState === "BATTLE") {
-            isMouseDown = true;
-            // Immediate shot for semi-auto
-            if (!player.isAuto) tryShoot();
-        }
+        if (gameState === "BATTLE") { isMouseDown = true; if (!player.isAuto) tryShoot(); }
         else if (gameState === "PAUSED") togglePause();
     };
     window.onmouseup = () => isMouseDown = false;
@@ -636,7 +606,6 @@
     function update() {
         if (gameState !== "BATTLE") return;
         let now = Date.now();
-
         if (player.dartLevel > 0 && now - lastDartTime > player.dartCooldown) {
             let target = enemies.sort((a,b) => b.hp - a.hp)[0];
             if (target) {
@@ -646,35 +615,23 @@
             }
             lastDartTime = now;
         }
-
         if (now - lastTick >= 1000) {
             timeLeft--; lastTick = now;
             player.hp = Math.min(player.maxHp, player.hp + player.regen + (tempBuff.active ? tempBuff.reg : 0));
             if (timeLeft <= 0) {
                 player.xp += (round <= 10 ? [0,10,12,14,16,20,24,26,30,34,40][round] : 40 + (round-10)*4);
                 while (player.xp >= 50 * Math.pow(1.25, player.level - 1)) { player.xp -= 50 * Math.pow(1.25, player.level - 1); player.level++; }
-                updateXPBar(); 
-                round++;
-                syncCloud(); 
-                gameState = "SHOP"; 
-                updateMenuUI();
-                shopOverlay.style.display = "flex";
-                document.getElementById('cloud-ui').style.opacity = '0';
-                document.getElementById('cloud-ui').style.pointerEvents = 'none';
-                updateShopUI();
-                return;
+                updateXPBar(); round++; syncCloud(); gameState = "SHOP"; updateMenuUI();
+                shopOverlay.style.display = "flex"; document.getElementById('cloud-ui').style.opacity = '0';
+                updateShopUI(); return;
             }
         }
-
-        // Auto fire logic
         if (isMouseDown && player.isAuto) tryShoot();
-
         const ms = 3.6;
         if(keys["KeyW"]) player.y -= ms; if(keys["KeyS"]) player.y += ms;
         if(keys["KeyA"]) player.x -= ms; if(keys["KeyD"]) player.x += ms;
         player.x = Math.max(20, Math.min(880, player.x));
         player.y = Math.max(20, Math.min(630, player.y));
-
         for(let i=darts.length-1; i>=0; i--) {
             let d = darts[i]; d.life++; let t = d.life / d.maxLife;
             if (t >= 1) { d.target.hp -= player.dartDamage; darts.splice(i, 1); continue; }
@@ -682,26 +639,30 @@
             let angle = Math.atan2(d.target.y - d.startY, d.target.x - d.startX);
             let offset = Math.sin(Math.PI * t) * d.curveDir;
             d.x = bx + Math.cos(angle + Math.PI/2) * offset; d.y = by + Math.sin(angle + Math.PI/2) * offset;
-            enemies.forEach(e => {
-                if(Math.hypot(d.x - e.x, d.y - e.y) < 25) e.hp -= (player.dartDamage * 0.2); 
-            });
+            enemies.forEach(e => { if(Math.hypot(d.x - e.x, d.y - e.y) < 25) e.hp -= (player.dartDamage * 0.2); });
         }
-
         for(let i=bullets.length-1; i>=0; i--) {
-            let b = bullets[i]; b.x += b.sx; b.y += b.sy; b.d += player.bulletSpeed;
+            let b = bullets[i];
+            let oldX = b.x, oldY = b.y;
+            b.x += b.sx; b.y += b.sy; b.d += player.bulletSpeed;
             if(b.d > player.range) { bullets.splice(i,1); continue; }
-            enemies.forEach(e => {
-                if(Math.hypot(b.x-e.x, b.y-e.y)<22 && !b.hit.includes(e.id)) {
-                    e.hp -= player.baseDamage * (Math.random()<player.critRate?2:1);
-                    b.hit.push(e.id);
-                    if(b.p > 0) b.p--;
-                    else if (b.p === 0) b.p = -1; 
-                    // if b.p is already very high (AWM), it just stays high
-                }
-            });
+            
+            // Sub-stepping for fast bullets (High velocity fix)
+            let steps = player.bulletSpeed > 25 ? 4 : 1;
+            for(let s=1; s<=steps; s++) {
+                let checkX = oldX + (b.sx * (s/steps));
+                let checkY = oldY + (b.sy * (s/steps));
+                enemies.forEach(e => {
+                    if(Math.hypot(checkX-e.x, checkY-e.y)<22 && !b.hit.includes(e.id)) {
+                        e.hp -= player.baseDamage * (Math.random()<player.critRate?2:1);
+                        b.hit.push(e.id);
+                        if(b.p > 0 && b.p < 900) b.p--;
+                        else if (b.p === 0) b.p = -1;
+                    }
+                });
+            }
             if(b.p < 0) bullets.splice(i,1);
         }
-
         enemies.forEach((e, i) => {
             let dx = player.x-e.x, dy = player.y-e.y, dist = Math.hypot(dx,dy);
             e.x += (dx/dist)*e.speed; e.y += (dy/dist)*e.speed;
@@ -714,18 +675,15 @@
             }
             if (e.hp <= 0) { player.score += e.maxHp; enemies.splice(i, 1); }
         });
-
         if (player.hp <= 0) { syncCloud().then(() => { alert("MISSION FAILED!"); location.reload(); }); }
     }
 
     function draw() {
         ctx.clearRect(0,0,900,650);
         if (gameState === "SHOP" || gameState === "MENU" || gameState === "GUN") return;
-        
         darts.forEach(d => {
             ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.life * 0.6); 
-            ctx.fillStyle="#00ffcc"; ctx.fillRect(-8, -8, 16, 16); 
-            ctx.strokeStyle="#fff"; ctx.strokeRect(-8, -8, 16, 16);
+            ctx.fillStyle="#00ffcc"; ctx.fillRect(-8, -8, 16, 16); ctx.strokeStyle="#fff"; ctx.strokeRect(-8, -8, 16, 16);
             ctx.restore();
         });
         bullets.forEach(b => { 
@@ -737,7 +695,6 @@
             ctx.fillStyle="#333"; ctx.fillRect(e.x, e.y-12, 20, 5);
             ctx.fillStyle="#f00"; ctx.fillRect(e.x, e.y-12, 20*(e.hp/e.maxHp), 5);
         });
-        
         ctx.fillStyle="#3498db"; ctx.fillRect(player.x, player.y, 20, 20);
         ctx.fillStyle="#fff"; ctx.font="bold 20px monospace";
         ctx.fillText(`WAVE: ${round} | PT: ${player.score} | TIME: ${timeLeft}s`, 20, 35);
@@ -745,14 +702,12 @@
         ctx.fillStyle="#f44"; ctx.fillRect(20, 55, 250*(player.hp/player.maxHp), 20);
         ctx.fillStyle="#fff"; ctx.font="bold 12px Arial";
         ctx.fillText(`HP: ${Math.ceil(player.hp)} / ${player.maxHp}`, 30, 70);
-        
         if(player.shield > 0) {
             const sMax = Math.max(player.shield, player.shieldMax);
             ctx.fillStyle="#111"; ctx.fillRect(20, 85, 250, 15);
             ctx.fillStyle="#0df"; ctx.fillRect(20, 85, 250*(player.shield/sMax), 15);
             ctx.fillStyle="#fff"; ctx.fillText(`SHIELD: ${Math.ceil(player.shield)}`, 30, 97);
         }
-
         if (gameState === "TRANSITION") {
             ctx.fillStyle="rgba(0,0,0,0.8)"; ctx.fillRect(0,0,900,650);
             ctx.fillStyle="#fff"; ctx.font="bold 70px Arial"; ctx.textAlign="center";

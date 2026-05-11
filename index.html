@@ -17,7 +17,6 @@
             letter-spacing: 20px; text-shadow: 0 0 30px rgba(255,0,0,0.6);
             font-weight: 900;
         }
-        /* 新增：开始按钮下的关卡显示 */
         #menu-round-info { color: #888; font-size: 24px; margin-top: 10px; margin-bottom: 30px; letter-spacing: 2px; }
         
         .armory-box {
@@ -38,7 +37,6 @@
         .cloud-ui { position: absolute; top: 10px; right: 10px; z-index: 300; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
         #login-btn { background: #4285F4; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 150px; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        /* 排行榜样式：增加悬浮等级显示 */
         .leaderboard-container { background: rgba(0,0,0,0.85); border: 1px solid #444; border-radius: 8px; width: 200px; overflow: hidden; transition: 0.3s; }
         .leaderboard-header { background: #222; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid #444; }
         .leaderboard-header h4 { margin: 0; color: #f1c40f; font-size: 13px; letter-spacing: 1px; }
@@ -47,14 +45,12 @@
         .leaderboard-container.collapsed .leaderboard-content { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; }
         .rank-item { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 2px; position: relative; }
         .rank-item b { color: #fff; }
-        /* 鼠标悬浮在排行榜名字上显示等级 */
         .rank-item:hover::after {
             content: attr(data-lvl); position: absolute; left: -80px; top: 0;
             background: #f1c40f; color: #000; padding: 2px 8px; border-radius: 4px;
             font-weight: bold; font-size: 10px; z-index: 1000;
         }
 
-        /* 经验进度条样式：黑白风格 */
         #xp-overlay {
             display: none; position: absolute; top: 40px; right: 0; width: 200px;
             background: #000; border: 1px solid #fff; padding: 10px; z-index: 400;
@@ -69,8 +65,21 @@
         .shop-header { width: 95%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #444; padding-bottom: 15px; }
         .shop-header h1 { font-size: 42px; color: #f1c40f; margin: 0; letter-spacing: 2px; }
         .points-info { font-size: 36px; color: #2ecc71; font-weight: bold; background: #222; padding: 5px 25px; border-radius: 10px; border: 1px solid #555; }
+        
         #pause-overlay { background: rgba(0,0,0,0.85); justify-content: center; cursor: pointer; }
         #pause-overlay h2 { font-size: 64px; color: #f1c40f; margin-bottom: 10px; letter-spacing: 5px; }
+
+        /* 新增：技能清单 (TAB) 样式 */
+        #inventory-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 500px; background: rgba(0, 0, 0, 0.95); border: 2px solid #f1c40f;
+            border-radius: 15px; padding: 25px; z-index: 600; display: none;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
+        }
+        #inventory-overlay h3 { color: #f1c40f; margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; text-align: center; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; color: #fff; font-family: monospace; }
+        .skill-list-box { max-height: 250px; overflow-y: auto; border-top: 1px solid #333; padding-top: 10px; }
+        .skill-item { display: flex; justify-content: space-between; color: #aaa; font-size: 14px; margin-bottom: 4px; }
         
         .cards-container { display: flex; gap: 20px; justify-content: center; width: 100%; height: 440px; }
         .skill-card { width: 280px; height: 100%; background: #1a1a1a; border: 3px solid #444; border-radius: 20px; display: flex; flex-direction: column; padding: 25px; transition: 0.2s; box-sizing: border-box; cursor: pointer; }
@@ -78,7 +87,7 @@
         .skill-card.sold-out { opacity: 0.1; filter: grayscale(1); pointer-events: none; }
         .rarity-tag { font-size: 14px; font-weight: bold; padding: 4px 12px; border-radius: 6px; align-self: flex-start; margin-bottom: 15px; text-transform: uppercase; }
         .skill-name { font-size: 28px; font-weight: bold; margin-bottom: 20px; color: #fff; border-bottom: 2px solid #333; padding-bottom: 10px; }
-        .skill-desc { font-size: 17px; line-height: 1.5; color: #ccc; flex-grow: 1; }
+        .skill-desc { font-size: 15px; line-height: 1.4; color: #ccc; flex-grow: 1; }
         .skill-price { font-size: 26px; color: #f39c12; font-weight: bold; text-align: center; margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.5); border-radius: 10px; }
         
         .r-50 { background: #7f8c8d; color: #000; } .r-25 { background: #3498db; color: #fff; } .r-20 { background: #9b59b6; color: #fff; } 
@@ -103,12 +112,10 @@
 
         <div class="cloud-ui">
             <button id="login-btn" onclick="toggleXP()">GMAIL LOGIN</button>
-            
             <div id="xp-overlay">
                 <div class="xp-text"><span>EXP PROGRESS</span><span id="xp-val-text">0/50</span></div>
                 <div class="xp-bar-bg"><div id="xp-fill" class="xp-bar-fill"></div></div>
             </div>
-
             <div id="lb-container" class="leaderboard-container">
                 <div class="leaderboard-header" onclick="toggleLeaderboard()">
                     <h4>LEADERBOARD (ROUNDS)</h4>
@@ -138,6 +145,14 @@
             <p>Click or Press ESC to Resume Combat</p>
         </div>
 
+        <div id="inventory-overlay">
+            <h3>OPERATOR STATUS & SKILLS</h3>
+            <div class="stat-grid" id="stat-grid">
+                </div>
+            <div class="skill-list-box" id="skill-list-box">
+                </div>
+        </div>
+
         <canvas id="game" width="900" height="650"></canvas>
     </div>
 
@@ -160,29 +175,58 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // 核心变量
+    let gameState = "MENU";
+    let player = { 
+        x: 450, y: 325, score: 0, hp: 100, maxHp: 100, shield: 0, shieldMax: 0,
+        baseDamage: 0.6, critRate: 0.05, dodgeRate: 0.01,
+        fireRate: 200, pierce: 1, range: 750, regen: 0, 
+        dartLevel: 0, dartDamage: 5, dartCooldown: 10000,
+        highRound: 1, level: 1, xp: 0,
+        inventory: [] // 存储已购技能名
+    };
+
+    let enemies = [], bullets = [], darts = [], keys = {};
+    let round = 1, timeLeft = 20, lastTick = Date.now(), refreshUsed = 0, lastDartTime = 0;
+    const refreshCosts = [1, 2, 5, 10, 20];
+    let tempBuff = { active: false, fr: 1, reg: 0 };
+
+    // 窗口绑定
     window.login = () => signInWithPopup(auth, new GoogleAuthProvider());
-    
-    // XP 进度条切换
     window.toggleXP = () => {
         if (!auth.currentUser) { window.login(); return; }
         const overlay = document.getElementById('xp-overlay');
         overlay.style.display = overlay.style.display === 'block' ? 'none' : 'block';
         updateXPBar();
     };
-
     window.toggleLeaderboard = () => {
         const container = document.getElementById('lb-container');
         const icon = document.getElementById('toggle-icon');
         container.classList.toggle('collapsed');
         icon.innerText = container.classList.contains('collapsed') ? '▲' : '▼';
     };
-
     window.startGame = () => {
         document.getElementById('main-menu').style.display = 'none';
         gameState = "BATTLE";
+        player.shieldMax = player.shield; // 回合开始前锁定当前护盾作为显示上限参考
         lastTick = Date.now();
     };
 
+    // 技能定义
+    const allSkills = [
+        { n: "Tactical Repair", d: "Instantly restore 20 HP.", v: () => { player.hp = Math.min(player.maxHp, player.hp + 20); }, r: 50, p: 10 },
+        { n: "Energy Shield", d: "Gain 20 Shield capacity.", v: () => { player.shield += 20; }, r: 50, p: 10 },
+        { n: "Cellular Regen", d: "Recover 1 HP every second.", v: () => { player.regen += 1; }, r: 25, p: 20 },
+        { n: "Critical Analysis", d: "Crit Rate +5%.", v: () => { player.critRate += 0.05; }, r: 25, p: 20 },
+        { n: "Overclock Mod", d: "Fire Rate +15%, but -5% Damage and -10% Range.", v: () => { player.fireRate *= 0.85; player.baseDamage *= 0.95; player.range *= 0.9; }, r: 20, p: 25 },
+        { n: "Railgun Ammo", d: "Pierce +1 and Damage +5%, but Fire Rate -10%.", v: () => { player.pierce += 1; player.baseDamage *= 1.05; player.fireRate *= 1.1; }, r: 20, p: 25 },
+        { n: "Predator Darts", d: "Darts Level +1. Damage increases by 1, CD reduces by 25%.", v: () => { player.dartLevel += 1; player.dartDamage += 1; player.dartCooldown *= 0.75; }, r: 10, p: 30 },
+        { n: "Titan Core", d: "Max HP +30 and Heal 30 HP.", v: () => { player.maxHp += 30; player.hp = Math.min(player.maxHp, player.hp + 30); }, r: 10, p: 30 },
+        { n: "Berserker Drive", d: "[ROUND ONLY] Fire Rate x5 & Massive Regen.", v: () => { tempBuff.fr = 5; tempBuff.reg = 3; tempBuff.active = true; }, r: 5, p: 35 },
+        { n: "God Protocol", d: "Ultimate augmentation: massive stats boost.", v: () => { player.range *= 1.5; player.pierce += 2; player.baseDamage += 0.5; }, r: 1, p: 40 }
+    ];
+
+    // Firebase 监听
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             const snap = await getDoc(doc(db, "pixel_stats", user.uid));
@@ -192,14 +236,13 @@
                 player.level = d.level || 1;
                 player.xp = d.xp || 0;
                 round = d.lastRound || 1;
-                player.score = d.points || 0; // 恢复积分
+                player.score = d.points || 0;
             }
             updateNameUI();
             updateMenuUI();
         }
     });
 
-    // 排行榜改为按最高关卡排序
     onSnapshot(query(collection(db, "pixel_stats"), orderBy("highRound", "desc"), limit(5)), (s) => {
         const list = document.getElementById('rank-list');
         list.innerHTML = '';
@@ -225,82 +268,27 @@
         }
     }
 
+    // UI 更新函数
     function updateNameUI() {
         if (auth.currentUser) {
             const name = auth.currentUser.displayName.split(' ')[0].toUpperCase();
             document.getElementById('login-btn').innerText = `${name}: LVL ${player.level}`;
         }
     }
-
-    function updateMenuUI() {
-        document.getElementById('menu-round-info').innerText = `ROUND ${round}`;
-    }
-
+    function updateMenuUI() { document.getElementById('menu-round-info').innerText = `ROUND ${round}`; }
     function updateXPBar() {
-        const nextXp = getNextLevelXp(player.level);
+        const nextXp = 50 * Math.pow(1.25, player.level - 1);
         const perc = (player.xp / nextXp) * 100;
         document.getElementById('xp-fill').style.width = perc + "%";
         document.getElementById('xp-val-text').innerText = `${Math.floor(player.xp)} / ${Math.floor(nextXp)}`;
     }
 
-    // 升级经验公式：1.25倍
-    function getNextLevelXp(lvl) {
-        return 50 * Math.pow(1.25, lvl - 1);
-    }
-
-    // 经验收益序列：10, 12, 14, 16, 20, 24, 26, 30, 34, 40...
-    function getRoundXP(r) {
-        const seq = [0, 10, 12, 14, 16, 20, 24, 26, 30, 34, 40];
-        if (r <= 10) return seq[r];
-        // 10关以后的规律：每关基础增加，且逢5逢10额外加
-        return 40 + (r - 10) * 4; 
-    }
-
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
+    // 商店逻辑
     const shopOverlay = document.getElementById("shop-overlay");
-    const pauseOverlay = document.getElementById("pause-overlay");
     const pointsDisplay = document.getElementById("points-display");
     const cardsContainer = document.getElementById("cards-container");
     const refreshBtn = document.getElementById("refresh-btn");
     const refreshCountText = document.getElementById("refresh-count");
-    const confirmBtn = document.getElementById("confirm-btn");
-
-    let gameState = "MENU";
-    let player = { 
-        x: 450, y: 325, score: 0, hp: 100, maxHp: 100, shield: 0,
-        baseDamage: 0.6, critRate: 0.05, dodgeRate: 0.01,
-        fireRate: 200, pierce: 1, range: 750, regen: 0, dartLevel: 0,
-        highRound: 1, level: 1, xp: 0
-    };
-
-    let enemies = [], bullets = [], darts = [], keys = {};
-    let round = 1, timeLeft = 20, lastTick = Date.now(), refreshUsed = 0, lastDartTime = 0;
-    const refreshCosts = [1, 2, 5, 10, 20];
-    let tempBuff = { active: false, fr: 1, reg: 0 };
-
-    const allSkills = [
-        { n: "Tactical Repair", d: "Instantly restore 20 HP.", v: () => player.hp = Math.min(player.maxHp, player.hp + 20), r: 50, p: 10 },
-        { n: "Energy Shield", d: "Gain 20 Shield capacity.", v: () => player.shield += 20, r: 50, p: 10 },
-        { n: "Cellular Regen", d: "Recover 1 HP every second.", v: () => player.regen += 1, r: 25, p: 20 },
-        { n: "Critical Analysis", d: "Crit Rate +8%.", v: () => player.critRate += 0.08, r: 25, p: 20 },
-        { n: "Overclock Mod", d: "Fire Rate +15%.", v: () => player.fireRate *= 0.85, r: 20, p: 25 },
-        { n: "Railgun Ammo", d: "Pierce +1.", v: () => player.pierce += 1, r: 20, p: 25 },
-        { n: "Predator Darts", d: "Activate physics-based grey darts. Lock strongest & nearest every 10s.", v: () => player.dartLevel += 1, r: 10, p: 30 },
-        { n: "Titan Core", d: "Max HP +30 and full heal.", v: () => { player.maxHp += 30; player.hp = player.maxHp; }, r: 10, p: 30 },
-        { n: "Berserker Drive", d: "[ROUND ONLY] Fire Rate x5 & massive regen.", v: () => { tempBuff.fr = 5; tempBuff.reg = 3; tempBuff.active = true; }, r: 5, p: 35 },
-        { n: "God Protocol", d: "Ultimate augmentation.", v: () => { player.range *= 1.5; player.pierce += 2; player.baseDamage += 0.5; }, r: 1, p: 40 }
-    ];
-
-    function togglePause() {
-        if (["SHOP", "TRANSITION", "MENU"].includes(gameState)) return;
-        if (gameState === "BATTLE") { gameState = "PAUSED"; pauseOverlay.style.display = "flex"; }
-        else if (gameState === "PAUSED") { gameState = "BATTLE"; pauseOverlay.style.display = "none"; lastTick = Date.now(); }
-    }
-
-    pauseOverlay.onclick = togglePause;
-    window.onkeydown = e => { keys[e.code] = true; if (e.code === "Escape") togglePause(); };
-    window.onkeyup = e => keys[e.code] = false;
 
     function getRandomSkill() {
         const roll = Math.random() * 100;
@@ -320,13 +308,12 @@
             card.className = "skill-card";
             const canAfford = player.score >= skill.p;
             card.innerHTML = `<div class="rarity-tag r-${skill.r}">${skill.r === 1 ? 'ULTIMATE' : skill.r <= 10 ? 'LEGEND' : 'STANDARD'}</div><div class="skill-name">${skill.n}</div><div class="skill-desc">${skill.d}</div><div class="skill-price ${!canAfford ? 'insufficient' : ''}">COST: ${skill.p} PT</div>`;
-            
             card.onclick = (e) => {
-                e.stopPropagation();
                 if (player.score >= skill.p) {
-                    player.score -= skill.p; 
+                    player.score -= skill.p;
                     skill.v();
-                    card.classList.add("sold-out"); 
+                    player.inventory.push(skill.n); // 记录技能
+                    card.classList.add("sold-out");
                     card.onclick = null;
                     pointsDisplay.innerText = player.score;
                     updateShopButtons();
@@ -339,8 +326,7 @@
 
     function updateShopButtons() {
         if (refreshUsed >= 5) {
-            refreshBtn.innerText = `MAX REACHED`;
-            refreshBtn.disabled = true;
+            refreshBtn.innerText = `MAX REACHED`; refreshBtn.disabled = true;
             refreshCountText.innerText = `REROLLS LEFT: 0/5`;
         } else {
             const cost = refreshCosts[refreshUsed];
@@ -352,31 +338,69 @@
 
     refreshBtn.onclick = () => {
         const cost = refreshCosts[refreshUsed];
-        if (player.score >= cost && refreshUsed < 5) { 
-            player.score -= cost; 
-            refreshUsed++; 
-            updateShopUI(); 
-        }
+        if (player.score >= cost && refreshUsed < 5) { player.score -= cost; refreshUsed++; updateShopUI(); }
     };
 
-    confirmBtn.onclick = () => {
+    document.getElementById("confirm-btn").onclick = () => {
         shopOverlay.style.display = "none"; gameState = "TRANSITION";
+        player.shieldMax = player.shield; // 回合开始，记录新护盾基准
         setTimeout(() => { 
             enemies = []; bullets = []; darts = []; timeLeft = 20; refreshUsed = 0; tempBuff.active = false;
             gameState = "BATTLE"; lastTick = Date.now();
         }, 800);
     };
 
-    function getEliteTarget() {
-        if (enemies.length === 0) return null;
-        let target = null, maxHP = -1, minDist = Infinity;
-        enemies.forEach(e => {
-            let d = Math.hypot(e.x - player.x, e.y - player.y);
-            if (e.hp > maxHP) { maxHP = e.hp; minDist = d; target = e; }
-            else if (e.hp === maxHP && d < minDist) { minDist = d; target = e; }
-        });
-        return target;
+    // 输入处理
+    const inventoryOverlay = document.getElementById("inventory-overlay");
+    window.onkeydown = e => {
+        keys[e.code] = true;
+        if (e.code === "Escape") togglePause();
+        if (e.code === "Tab") { e.preventDefault(); showInventory(); }
+    };
+    window.onkeyup = e => {
+        keys[e.code] = false;
+        if (e.code === "Tab") inventoryOverlay.style.display = "none";
+    };
+
+    function togglePause() {
+        const pauseOverlay = document.getElementById("pause-overlay");
+        if (["SHOP", "TRANSITION", "MENU"].includes(gameState)) return;
+        if (gameState === "BATTLE") { gameState = "PAUSED"; pauseOverlay.style.display = "flex"; }
+        else if (gameState === "PAUSED") { gameState = "BATTLE"; pauseOverlay.style.display = "none"; lastTick = Date.now(); }
     }
+
+    // TAB 技能显示逻辑
+    function showInventory() {
+        inventoryOverlay.style.display = "block";
+        const grid = document.getElementById("stat-grid");
+        const list = document.getElementById("skill-list-box");
+        
+        // 计算汇总属性
+        grid.innerHTML = `
+            <div>DMG MULT: x${(player.baseDamage/0.6).toFixed(2)}</div>
+            <div>CRIT RATE: ${(player.critRate*100).toFixed(0)}%</div>
+            <div>REGEN: ${player.regen + (tempBuff.active?tempBuff.reg:0)}/s</div>
+            <div>PIERCE: ${player.pierce}</div>
+            <div>DART LVL: ${player.dartLevel}</div>
+            <div>DART DMG: ${player.dartDamage}</div>
+        `;
+        
+        // 合并显示同名技能
+        const counts = {};
+        player.inventory.forEach(x => counts[x] = (counts[x] || 0) + 1);
+        list.innerHTML = Object.entries(counts).map(([name, count]) => 
+            `<div class="skill-item"><span>${name}</span><span>x${count}</span></div>`
+        ).join('');
+    }
+
+    // 核心循环
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    let mousePos = {x:0, y:0}, isMouseDown = false, lastShot = 0;
+
+    canvas.onmousedown = () => isMouseDown = true;
+    window.onmouseup = () => isMouseDown = false;
+    canvas.onmousemove = e => { const r = canvas.getBoundingClientRect(); mousePos.x = e.clientX-r.left; mousePos.y = e.clientY-r.top; };
 
     function spawnEnemy() {
         if (gameState !== "BATTLE" || Math.random() > 0.75) return;
@@ -387,17 +411,13 @@
         enemies.push({ id: Math.random(), x, y, hp, maxHp: hp, speed: 1.0 + (round*0.06), atkTimer: 0 });
     }
 
-    let isMouseDown = false, mousePos = {x:0, y:0}, lastShot = 0;
-    canvas.onmousedown = () => { if (gameState === "PAUSED") togglePause(); else isMouseDown = true; };
-    window.onmouseup = () => isMouseDown = false;
-    canvas.onmousemove = e => { const r = canvas.getBoundingClientRect(); mousePos.x = e.clientX-r.left; mousePos.y = e.clientY-r.top; };
-
     function update() {
         if (gameState !== "BATTLE") return;
         let now = Date.now();
 
-        if (player.dartLevel > 0 && now - lastDartTime > 10000) {
-            let target = getEliteTarget();
+        // 飞镖逻辑
+        if (player.dartLevel > 0 && now - lastDartTime > player.dartCooldown) {
+            let target = enemies.sort((a,b) => b.hp - a.hp)[0];
             if (target) {
                 for (let i = 0; i < player.dartLevel; i++) {
                     darts.push({ startX: player.x, startY: player.y, x: player.x, y: player.y, target: target, life: 0, maxLife: 70, curveDir: (Math.random() - 0.5) * 120 });
@@ -406,52 +426,49 @@
             lastDartTime = now;
         }
 
+        // 计时与自然恢复
         if (now - lastTick >= 1000) {
             timeLeft--; lastTick = now;
             player.hp = Math.min(player.maxHp, player.hp + player.regen + (tempBuff.active ? tempBuff.reg : 0));
             if (timeLeft <= 0) {
-                // 回合结束：加经验，判升级
-                const earnedXP = getRoundXP(round);
-                player.xp += earnedXP;
-                while (player.xp >= getNextLevelXp(player.level)) {
-                    player.xp -= getNextLevelXp(player.level);
-                    player.level++;
-                }
-                updateXPBar();
-                syncCloud(); 
+                player.xp += (round <= 10 ? [0,10,12,14,16,20,24,26,30,34,40][round] : 40 + (round-10)*4);
+                while (player.xp >= 50 * Math.pow(1.25, player.level - 1)) { player.xp -= 50 * Math.pow(1.25, player.level - 1); player.level++; }
+                updateXPBar(); syncCloud();
                 gameState = "SHOP"; round++; updateMenuUI();
                 shopOverlay.style.display = "flex"; updateShopUI();
                 return;
             }
         }
 
+        // 射击
         let fr = player.fireRate / (tempBuff.active ? tempBuff.fr : 1);
         if (isMouseDown && now - lastShot > fr) {
-            let dx = mousePos.x - player.x, dy = mousePos.y - player.y, dist = Math.sqrt(dx*dx+dy*dy);
+            let dx = mousePos.x - player.x, dy = mousePos.y - player.y, dist = Math.hypot(dx,dy);
             bullets.push({ x: player.x, y: player.y, sx: (dx/dist)*18, sy: (dy/dist)*18, p: player.pierce, d: 0, hit: [] });
             lastShot = now;
         }
 
-        const moveSpeed = 3.6;
-        if(keys["KeyW"]) player.y -= moveSpeed; if(keys["KeyS"]) player.y += moveSpeed;
-        if(keys["KeyA"]) player.x -= moveSpeed; if(keys["KeyD"]) player.x += moveSpeed;
+        // 移动
+        const ms = 3.6;
+        if(keys["KeyW"]) player.y -= ms; if(keys["KeyS"]) player.y += ms;
+        if(keys["KeyA"]) player.x -= ms; if(keys["KeyD"]) player.x += ms;
 
+        // 飞镖更新
         for(let i=darts.length-1; i>=0; i--) {
             let d = darts[i]; d.life++; let t = d.life / d.maxLife;
-            if (t >= 1) { d.target.hp -= 8; darts.splice(i, 1); continue; }
-            let baseLineX = d.startX + (d.target.x - d.startX) * t;
-            let baseLineY = d.startY + (d.target.y - d.startY) * t;
+            if (t >= 1) { d.target.hp -= player.dartDamage; darts.splice(i, 1); continue; }
+            let bx = d.startX + (d.target.x - d.startX) * t, by = d.startY + (d.target.y - d.startY) * t;
             let angle = Math.atan2(d.target.y - d.startY, d.target.x - d.startX);
             let offset = Math.sin(Math.PI * t) * d.curveDir;
-            d.x = baseLineX + Math.cos(angle + Math.PI/2) * offset;
-            d.y = baseLineY + Math.sin(angle + Math.PI/2) * offset;
+            d.x = bx + Math.cos(angle + Math.PI/2) * offset; d.y = by + Math.sin(angle + Math.PI/2) * offset;
         }
 
+        // 子弹更新
         for(let i=bullets.length-1; i>=0; i--) {
             let b = bullets[i]; b.x += b.sx; b.y += b.sy; b.d += 18;
             if(b.d > player.range) { bullets.splice(i,1); continue; }
             enemies.forEach(e => {
-                if(Math.abs(b.x-e.x)<20 && Math.abs(b.y-e.y)<20 && !b.hit.includes(e.id)) {
+                if(Math.hypot(b.x-e.x, b.y-e.y)<22 && !b.hit.includes(e.id)) {
                     e.hp -= player.baseDamage * (Math.random()<player.critRate?2:1);
                     b.hit.push(e.id); b.p--;
                 }
@@ -459,12 +476,14 @@
             if(b.p <= 0) bullets.splice(i,1);
         }
 
+        // 敌人更新
         enemies.forEach((e, i) => {
-            let dx = player.x-e.x, dy = player.y-e.y, dist = Math.sqrt(dx*dx+dy*dy);
+            let dx = player.x-e.x, dy = player.y-e.y, dist = Math.hypot(dx,dy);
             e.x += (dx/dist)*e.speed; e.y += (dy/dist)*e.speed;
             if (dist < 22 && now - e.atkTimer > 500) {
                 if (Math.random() > player.dodgeRate) {
-                    if (player.shield > 0) player.shield = Math.max(0, player.shield - 20);
+                    // 护盾扣减
+                    if (player.shield > 0) player.shield = Math.max(0, player.shield - 5 * e.maxHp);
                     else player.hp -= 5.0 * e.maxHp;
                 }
                 e.atkTimer = now;
@@ -472,40 +491,44 @@
             if (e.hp <= 0) { player.score += e.maxHp; enemies.splice(i, 1); }
         });
 
-        if (player.hp <= 0) { 
-            syncCloud().then(() => {
-                alert("MISSION FAILED! Survived Rounds: " + round); 
-                location.reload(); 
-            });
-        }
+        if (player.hp <= 0) { syncCloud().then(() => { alert("MISSION FAILED!"); location.reload(); }); }
     }
 
     function draw() {
         ctx.clearRect(0,0,900,650);
         if (gameState === "SHOP" || gameState === "MENU") return;
         
-        ctx.fillStyle="#888"; 
         darts.forEach(d => {
-            ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.life * 0.3); ctx.fillRect(-5, -5, 10, 10); ctx.restore();
+            ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.life * 0.3); 
+            ctx.fillStyle="#00ffcc"; ctx.fillRect(-6, -6, 12, 12); ctx.restore();
         });
-
         bullets.forEach(b => { ctx.fillStyle="#f1c40f"; ctx.fillRect(b.x, b.y, 6, 6); });
         enemies.forEach(e => {
-            ctx.fillStyle = e.maxHp > 1 ? "#9b59b6" : "#2ecc71";
-            ctx.fillRect(e.x, e.y, 20, 20);
+            ctx.fillStyle = e.maxHp > 1 ? "#9b59b6" : "#2ecc71"; ctx.fillRect(e.x, e.y, 20, 20);
             ctx.fillStyle="#333"; ctx.fillRect(e.x, e.y-12, 20, 5);
             ctx.fillStyle="#f00"; ctx.fillRect(e.x, e.y-12, 20*(e.hp/e.maxHp), 5);
         });
+        
         ctx.fillStyle="#3498db"; ctx.fillRect(player.x, player.y, 20, 20);
+        
+        // UI
         ctx.fillStyle="#fff"; ctx.font="bold 20px monospace";
-        ctx.fillText(`WAVE: ${round} | PT: ${player.score} | BEST: R${player.highRound}`, 20, 35);
-        ctx.fillStyle="#333"; ctx.fillRect(20, 55, 250, 18);
-        ctx.fillStyle="#f44"; ctx.fillRect(20, 55, 250*(player.hp/player.maxHp), 18);
-        ctx.fillStyle="#fff"; ctx.font="bold 14px Arial"; ctx.fillText(`HP: ${Math.ceil(player.hp)} / ${player.maxHp}`, 280, 70);
+        ctx.fillText(`WAVE: ${round} | PT: ${player.score} | TIME: ${timeLeft}s`, 20, 35);
+        
+        // 血条 (显示数值)
+        ctx.fillStyle="#333"; ctx.fillRect(20, 55, 250, 20);
+        ctx.fillStyle="#f44"; ctx.fillRect(20, 55, 250*(player.hp/player.maxHp), 20);
+        ctx.fillStyle="#fff"; ctx.font="bold 12px Arial";
+        ctx.fillText(`HP: ${Math.ceil(player.hp)} / ${player.maxHp}`, 30, 70);
+        
+        // 护盾条 (显示绝对值)
         if(player.shield > 0) {
-            ctx.fillStyle="#068"; ctx.fillRect(20, 80, 250, 12);
-            ctx.fillStyle="#0df"; ctx.fillRect(20, 80, Math.min(250, (player.shield/100)*250), 12);
+            const sMax = Math.max(player.shield, player.shieldMax);
+            ctx.fillStyle="#111"; ctx.fillRect(20, 85, 250, 15);
+            ctx.fillStyle="#0df"; ctx.fillRect(20, 85, 250*(player.shield/sMax), 15);
+            ctx.fillStyle="#fff"; ctx.fillText(`SHIELD: ${Math.ceil(player.shield)}`, 30, 97);
         }
+
         if (gameState === "TRANSITION") {
             ctx.fillStyle="rgba(0,0,0,0.8)"; ctx.fillRect(0,0,900,650);
             ctx.fillStyle="#fff"; ctx.font="bold 70px Arial"; ctx.textAlign="center";

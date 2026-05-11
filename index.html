@@ -7,11 +7,13 @@
         #game-container { position: relative; width: 900px; height: 650px; }
         canvas { background: #0a0a0a; border: 4px solid #444; display: block; cursor: crosshair; }
         
-        #main-menu {
+        #main-menu, #save-menu {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; z-index: 500; display: flex; flex-direction: column;
             align-items: center; justify-content: center;
         }
+        #save-menu { display: none; z-index: 501; }
+        
         #main-menu h1 {
             font-size: 110px; color: #ff0000; margin: 0;
             letter-spacing: 20px; text-shadow: 0 0 30px rgba(255,0,0,0.6);
@@ -19,20 +21,28 @@
         }
         #menu-round-info { color: #888; font-size: 24px; margin-top: 10px; margin-bottom: 30px; letter-spacing: 2px; }
         
-        .armory-box {
-            width: 250px; height: 75px; border: 2px solid #333;
-            background: rgba(30, 30, 30, 0.5); border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            color: #555; font-size: 12px; margin-bottom: 20px;
-            letter-spacing: 1px; text-align: center;
-        }
-        .start-btn {
+        .start-btn, .menu-btn {
             padding: 15px 65px; font-size: 24px; background: #27ae60;
             color: white; border: none; border-radius: 50px; cursor: pointer;
             font-weight: bold; text-transform: uppercase; transition: 0.3s;
             box-shadow: 0 0 25px rgba(39, 174, 96, 0.4);
+            margin: 10px;
         }
-        .start-btn:hover { background: #2ecc71; transform: scale(1.08); box-shadow: 0 0 40px rgba(39, 174, 96, 0.6); }
+        .start-btn:hover, .menu-btn:hover { background: #2ecc71; transform: scale(1.08); }
+
+        /* Save Menu Styles */
+        .save-list { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; width: 80%; margin-bottom: 50px; }
+        .save-slot { width: 80px; height: 80px; background: #222; border: 2px solid #444; display: flex; align-items: center; justify-content: center; font-size: 30px; color: #fff; cursor: pointer; border-radius: 10px; }
+        .save-slot.active { border-color: #f1c40f; box-shadow: 0 0 15px #f1c40f; }
+        .save-controls { display: none; gap: 20px; margin-bottom: 30px; }
+        .del-btn { background: #555; color: white; padding: 10px 30px; border-radius: 5px; cursor: pointer; border: none; }
+        .enter-btn { background: #27ae60; color: white; padding: 10px 30px; border-radius: 5px; cursor: pointer; border: none; }
+
+        .exit-level-btn {
+            position: absolute; top: 10px; left: 10px; z-index: 400;
+            background: #c0392b; color: white; border: none; padding: 8px 15px;
+            border-radius: 5px; cursor: pointer; font-weight: bold; display: none;
+        }
 
         .cloud-ui { position: absolute; top: 10px; right: 10px; z-index: 300; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
         #login-btn { background: #4285F4; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 150px; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -45,11 +55,6 @@
         .leaderboard-container.collapsed .leaderboard-content { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; }
         .rank-item { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 2px; position: relative; }
         .rank-item b { color: #fff; }
-        .rank-item:hover::after {
-            content: attr(data-lvl); position: absolute; left: -80px; top: 0;
-            background: #f1c40f; color: #000; padding: 2px 8px; border-radius: 4px;
-            font-weight: bold; font-size: 10px; z-index: 1000;
-        }
 
         #xp-overlay {
             display: none; position: absolute; top: 40px; right: 0; width: 200px;
@@ -102,11 +107,23 @@
 </head>
 <body>
     <div id="game-container">
+        <button class="exit-level-btn" id="exit-btn" onclick="abandonMission()">ABANDON MISSION</button>
+
         <div id="main-menu">
             <h1>SURVIVE</h1>
             <div id="menu-round-info">ROUND 1</div>
-            <div class="armory-box">ARMORY & LOGISTICS<br>(SYSTEM IDLE)</div>
-            <button class="start-btn" onclick="startGame()">START MISSION</button>
+            <button class="start-btn" onclick="openSaveMenu()">SAVES & LOGISTICS</button>
+        </div>
+
+        <div id="save-menu">
+            <h1 style="color: #f1c40f; font-size: 40px; margin-bottom: 30px;">SAVE DATA</h1>
+            <div class="save-list" id="save-list"></div>
+            <div class="save-controls" id="save-controls">
+                <button class="del-btn" onclick="deleteSave()">DELETE</button>
+                <button class="enter-btn" onclick="enterGame()">ENTER</button>
+            </div>
+            <button class="start-btn" onclick="createNewGame()">NEW GAME</button>
+            <button style="background: #333; padding: 10px 40px;" class="menu-btn" onclick="backToMain()">BACK</button>
         </div>
 
         <div class="cloud-ui">
@@ -172,8 +189,9 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // 核心变量
     let gameState = "MENU";
+    let selectedSaveId = null;
+
     let player = { 
         x: 450, y: 325, score: 0, hp: 100, maxHp: 100, shield: 0, shieldMax: 0,
         baseDamage: 0.6, critRate: 0.05, dodgeRate: 0.01,
@@ -188,7 +206,97 @@
     const refreshCosts = [1, 2, 5, 10, 20];
     let tempBuff = { active: false, fr: 1, reg: 0 };
 
-    // 窗口绑定
+    window.openSaveMenu = () => {
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('save-menu').style.display = 'flex';
+        renderSaves();
+    };
+
+    window.backToMain = () => {
+        document.getElementById('main-menu').style.display = 'flex';
+        document.getElementById('save-menu').style.display = 'none';
+    };
+
+    window.renderSaves = () => {
+        const list = document.getElementById('save-list');
+        const controls = document.getElementById('save-controls');
+        list.innerHTML = '';
+        controls.style.display = 'none';
+        selectedSaveId = null;
+
+        const saves = JSON.parse(localStorage.getItem('pixel_survivor_saves') || '{}');
+        Object.keys(saves).forEach(id => {
+            const div = document.createElement('div');
+            div.className = 'save-slot';
+            div.innerText = id;
+            div.onclick = () => {
+                document.querySelectorAll('.save-slot').forEach(s => s.classList.remove('active'));
+                div.classList.add('active');
+                selectedSaveId = id;
+                controls.style.display = 'flex';
+            };
+            list.appendChild(div);
+        });
+    };
+
+    window.createNewGame = () => {
+        const saves = JSON.parse(localStorage.getItem('pixel_survivor_saves') || '{}');
+        const nextId = Object.keys(saves).length > 0 ? Math.max(...Object.keys(saves).map(Number)) + 1 : 1;
+        
+        const newSave = {
+            id: nextId,
+            round: 1,
+            score: 0,
+            player: { ...player, inventory: [] }
+        };
+        
+        saves[nextId] = newSave;
+        localStorage.setItem('pixel_survivor_saves', JSON.stringify(saves));
+        renderSaves();
+    };
+
+    window.deleteSave = () => {
+        if (!selectedSaveId) return;
+        const saves = JSON.parse(localStorage.getItem('pixel_survivor_saves') || '{}');
+        delete saves[selectedSaveId];
+        localStorage.setItem('pixel_survivor_saves', JSON.stringify(saves));
+        renderSaves();
+    };
+
+    window.enterGame = () => {
+        if (!selectedSaveId) return;
+        const saves = JSON.parse(localStorage.getItem('pixel_survivor_saves') || '{}');
+        const data = saves[selectedSaveId];
+        
+        round = data.round;
+        player = data.player;
+        player.score = data.score;
+        
+        document.getElementById('save-menu').style.display = 'none';
+        document.getElementById('exit-btn').style.display = 'block';
+
+        if (round > 1) {
+            gameState = "SHOP";
+            document.getElementById('shop-overlay').style.display = 'flex';
+            updateShopUI();
+        } else {
+            gameState = "BATTLE";
+            player.shieldMax = player.shield; 
+            lastTick = Date.now();
+        }
+    };
+
+    window.abandonMission = () => {
+        if (confirm("Clear data and start over?")) {
+            if (selectedSaveId) {
+                const saves = JSON.parse(localStorage.getItem('pixel_survivor_saves') || '{}');
+                delete saves[selectedSaveId];
+                localStorage.setItem('pixel_survivor_saves', JSON.stringify(saves));
+            }
+            location.reload();
+        }
+    };
+
     window.login = () => signInWithPopup(auth, new GoogleAuthProvider());
     window.toggleXP = () => {
         if (!auth.currentUser) { window.login(); return; }
@@ -202,14 +310,7 @@
         container.classList.toggle('collapsed');
         icon.innerText = container.classList.contains('collapsed') ? '▲' : '▼';
     };
-    window.startGame = () => {
-        document.getElementById('main-menu').style.display = 'none';
-        gameState = "BATTLE";
-        player.shieldMax = player.shield; 
-        lastTick = Date.now();
-    };
 
-    // 技能定义
     const allSkills = [
         { n: "Tactical Repair", d: "Instantly restore 20 HP.", v: () => { player.hp = Math.min(player.maxHp, player.hp + 20); }, r: 50, p: 10 },
         { n: "Energy Shield", d: "Gain 20 Shield capacity.", v: () => { player.shield += 20; }, r: 50, p: 10 },
@@ -231,25 +332,8 @@
                 player.highRound = d.highRound || 1;
                 player.level = d.level || 1;
                 player.xp = d.xp || 0;
-                round = d.lastRound || 1;
-                player.score = d.points || 0;
-                player.inventory = d.inventory || [];
-                // 同步战斗属性
-                player.hp = d.hp ?? 100;
-                player.maxHp = d.maxHp ?? 100;
-                player.shield = d.shield ?? 0;
-                player.baseDamage = d.baseDamage ?? 0.6;
-                player.critRate = d.critRate ?? 0.05;
-                player.fireRate = d.fireRate ?? 200;
-                player.pierce = d.pierce ?? 1;
-                player.range = d.range ?? 750;
-                player.regen = d.regen ?? 0;
-                player.dartLevel = d.dartLevel ?? 0;
-                player.dartDamage = d.dartDamage ?? 5;
-                player.dartCooldown = d.dartCooldown ?? 5000;
             }
             updateNameUI();
-            updateMenuUI();
         }
     });
 
@@ -258,7 +342,7 @@
         list.innerHTML = '';
         s.forEach(d => { 
             const data = d.data();
-            list.innerHTML += `<div class="rank-item" data-lvl="LEVEL: ${data.level || 1}"><span>${data.name}</span><b>R${data.highRound || 1}</b></div>`; 
+            list.innerHTML += `<div class="rank-item"><span>${data.name}</span><b>R${data.highRound || 1}</b></div>`; 
         });
     });
 
@@ -269,26 +353,21 @@
                 name: auth.currentUser.displayName.split(' ')[0],
                 highRound: currentBestRound,
                 level: player.level,
-                xp: Math.floor(player.xp),
-                lastRound: round,
-                points: player.score,
-                inventory: player.inventory,
-                // 保存所有属性
-                hp: player.hp,
-                maxHp: player.maxHp,
-                shield: player.shield,
-                baseDamage: player.baseDamage,
-                critRate: player.critRate,
-                fireRate: player.fireRate,
-                pierce: player.pierce,
-                range: player.range,
-                regen: player.regen,
-                dartLevel: player.dartLevel,
-                dartDamage: player.dartDamage,
-                dartCooldown: player.dartCooldown
+                xp: Math.floor(player.xp)
             }, { merge: true });
             player.highRound = currentBestRound;
             updateNameUI();
+        }
+        
+        if (selectedSaveId) {
+            const saves = JSON.parse(localStorage.getItem('pixel_survivor_saves') || '{}');
+            saves[selectedSaveId] = {
+                id: selectedSaveId,
+                round: round,
+                score: player.score,
+                player: player
+            };
+            localStorage.setItem('pixel_survivor_saves', JSON.stringify(saves));
         }
     }
 
@@ -306,7 +385,6 @@
         document.getElementById('xp-val-text').innerText = `${Math.floor(player.xp)} / ${Math.floor(nextXp)}`;
     }
 
-    // 商店逻辑
     const shopOverlay = document.getElementById("shop-overlay");
     const pointsDisplay = document.getElementById("points-display");
     const cardsContainer = document.getElementById("cards-container");
@@ -322,7 +400,7 @@
         return pool[Math.floor(Math.random() * pool.length)];
     }
 
-    function updateShopUI() {
+    window.updateShopUI = () => {
         pointsDisplay.innerText = player.score;
         cardsContainer.innerHTML = "";
         for (let i = 0; i < 3; i++) {
@@ -374,7 +452,6 @@
         }, 800);
     };
 
-    // 输入处理
     const inventoryOverlay = document.getElementById("inventory-overlay");
     const pauseOverlay = document.getElementById("pause-overlay");
 
@@ -405,7 +482,6 @@
         inventoryOverlay.style.display = "block";
         const grid = document.getElementById("stat-grid");
         const list = document.getElementById("skill-list-box");
-        
         grid.innerHTML = `
             <div>DMG MULT: x${(player.baseDamage/0.6).toFixed(2)}</div>
             <div>CRIT RATE: ${(player.critRate*100).toFixed(0)}%</div>
@@ -414,7 +490,6 @@
             <div>DART LVL: ${player.dartLevel}</div>
             <div>DART DMG: ${player.dartDamage}</div>
         `;
-        
         const counts = {};
         player.inventory.forEach(x => counts[x] = (counts[x] || 0) + 1);
         list.innerHTML = Object.entries(counts).map(([name, count]) => 
@@ -446,7 +521,6 @@
         if (gameState !== "BATTLE") return;
         let now = Date.now();
 
-        // 飞镖生成
         if (player.dartLevel > 0 && now - lastDartTime > player.dartCooldown) {
             let target = enemies.sort((a,b) => b.hp - a.hp)[0];
             if (target) {
@@ -457,7 +531,6 @@
             lastDartTime = now;
         }
 
-        // 计时与同步
         if (now - lastTick >= 1000) {
             timeLeft--; lastTick = now;
             player.hp = Math.min(player.maxHp, player.hp + player.regen + (tempBuff.active ? tempBuff.reg : 0));
@@ -465,8 +538,9 @@
                 player.xp += (round <= 10 ? [0,10,12,14,16,20,24,26,30,34,40][round] : 40 + (round-10)*4);
                 while (player.xp >= 50 * Math.pow(1.25, player.level - 1)) { player.xp -= 50 * Math.pow(1.25, player.level - 1); player.level++; }
                 updateXPBar(); 
-                syncCloud(); // 每回合结束保存所有状态
-                gameState = "SHOP"; round++; updateMenuUI();
+                round++;
+                syncCloud(); 
+                gameState = "SHOP"; updateMenuUI();
                 shopOverlay.style.display = "flex"; updateShopUI();
                 return;
             }
@@ -479,14 +553,12 @@
             lastShot = now;
         }
 
-        // 移动限制（视角以内）
         const ms = 3.6;
         if(keys["KeyW"]) player.y -= ms; if(keys["KeyS"]) player.y += ms;
         if(keys["KeyA"]) player.x -= ms; if(keys["KeyD"]) player.x += ms;
         player.x = Math.max(20, Math.min(880, player.x));
         player.y = Math.max(20, Math.min(630, player.y));
 
-        // 飞镖更新 (含路径伤害)
         for(let i=darts.length-1; i>=0; i--) {
             let d = darts[i]; d.life++; let t = d.life / d.maxLife;
             if (t >= 1) { d.target.hp -= player.dartDamage; darts.splice(i, 1); continue; }
@@ -494,8 +566,6 @@
             let angle = Math.atan2(d.target.y - d.startY, d.target.x - d.startX);
             let offset = Math.sin(Math.PI * t) * d.curveDir;
             d.x = bx + Math.cos(angle + Math.PI/2) * offset; d.y = by + Math.sin(angle + Math.PI/2) * offset;
-            
-            // 路径碰撞检测
             enemies.forEach(e => {
                 if(Math.hypot(d.x - e.x, d.y - e.y) < 25) e.hp -= (player.dartDamage * 0.2); 
             });
@@ -547,10 +617,8 @@
         });
         
         ctx.fillStyle="#3498db"; ctx.fillRect(player.x, player.y, 20, 20);
-        
         ctx.fillStyle="#fff"; ctx.font="bold 20px monospace";
         ctx.fillText(`WAVE: ${round} | PT: ${player.score} | TIME: ${timeLeft}s`, 20, 35);
-        
         ctx.fillStyle="#333"; ctx.fillRect(20, 55, 250, 20);
         ctx.fillStyle="#f44"; ctx.fillRect(20, 55, 250*(player.hp/player.maxHp), 20);
         ctx.fillStyle="#fff"; ctx.font="bold 12px Arial";

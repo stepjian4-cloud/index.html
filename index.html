@@ -37,13 +37,18 @@
         .del-btn { background: #555; color: white; padding: 10px 30px; border-radius: 5px; cursor: pointer; border: none; }
         .enter-btn { background: #27ae60; color: white; padding: 10px 30px; border-radius: 5px; cursor: pointer; border: none; }
 
+        /* MOVED TO LEFT DOWN CORNER */
         .exit-level-btn {
-            position: absolute; top: 10px; left: 10px; z-index: 600;
+            position: absolute; bottom: 10px; left: 10px; z-index: 600;
             background: #c0392b; color: white; border: none; padding: 8px 15px;
             border-radius: 5px; cursor: pointer; font-weight: bold; display: none;
         }
 
-        .cloud-ui { position: absolute; top: 10px; right: 10px; z-index: 300; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+        .cloud-ui { 
+            position: absolute; top: 10px; right: 10px; z-index: 300; 
+            display: flex; flex-direction: column; align-items: flex-end; gap: 8px; 
+            transition: opacity 0.3s ease;
+        }
         #login-btn { background: #4285F4; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 150px; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
         .leaderboard-container { background: rgba(0,0,0,0.85); border: 1px solid #444; border-radius: 8px; width: 200px; overflow: hidden; transition: 0.3s; }
@@ -277,7 +282,8 @@
         if (round > 1) {
             gameState = "SHOP";
             document.getElementById('shop-overlay').style.display = 'flex';
-            document.getElementById('cloud-ui').style.display = 'none';
+            document.getElementById('cloud-ui').style.opacity = '0';
+            document.getElementById('cloud-ui').style.pointerEvents = 'none';
             updateShopUI();
         } else {
             gameState = "BATTLE";
@@ -445,7 +451,8 @@
 
     document.getElementById("confirm-btn").onclick = () => {
         shopOverlay.style.display = "none";
-        document.getElementById('cloud-ui').style.display = 'flex';
+        document.getElementById('cloud-ui').style.opacity = '1';
+        document.getElementById('cloud-ui').style.pointerEvents = 'auto';
         gameState = "TRANSITION";
         player.shieldMax = player.shield; 
         setTimeout(() => { 
@@ -545,7 +552,8 @@
                 gameState = "SHOP"; 
                 updateMenuUI();
                 shopOverlay.style.display = "flex";
-                document.getElementById('cloud-ui').style.display = 'none';
+                document.getElementById('cloud-ui').style.opacity = '0';
+                document.getElementById('cloud-ui').style.pointerEvents = 'none';
                 updateShopUI();
                 return;
             }

@@ -194,7 +194,7 @@
     let player = { 
         x: 450, y: 325, score: 0, hp: 100, maxHp: 100, shield: 0, shieldMax: 0,
         baseDamage: 0.6, critRate: 0.05, dodgeRate: 0.01,
-        fireRate: 200, pierce: 1, range: 750, regen: 0, 
+        fireRate: 250, pierce: 0, range: 750, regen: 0, 
         dartLevel: 0, dartDamage: 5, dartCooldown: 5000,
         highRound: 1, level: 1, xp: 0,
         inventory: [] 
@@ -582,10 +582,12 @@
             enemies.forEach(e => {
                 if(Math.hypot(b.x-e.x, b.y-e.y)<22 && !b.hit.includes(e.id)) {
                     e.hp -= player.baseDamage * (Math.random()<player.critRate?2:1);
-                    b.hit.push(e.id); b.p--;
+                    b.hit.push(e.id);
+                    if(b.p > 0) b.p--;
+                    else b.p = -1; 
                 }
             });
-            if(b.p <= 0) bullets.splice(i,1);
+            if(b.p < 0) bullets.splice(i,1);
         }
 
         enemies.forEach((e, i) => {

@@ -65,6 +65,22 @@
         }
         #login-btn { background: #4285F4; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 150px; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
+        #chat-container {
+            position: absolute; right: -180px; top: 50%; transform: translateY(-50%);
+            width: 220px; height: 300px; background: rgba(0,0,0,0.7);
+            border: 1px solid #444; border-right: none; border-radius: 10px 0 0 10px;
+            display: none; flex-direction: column; transition: 0.3s ease; z-index: 450;
+            overflow: hidden; opacity: 0.5;
+        }
+        #chat-container:hover, #chat-container:focus-within { right: 0; opacity: 1; background: rgba(0,0,0,0.9); }
+        #chat-messages { flex-grow: 1; overflow-y: auto; padding: 10px; color: #fff; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+        #chat-messages::-webkit-scrollbar { width: 4px; }
+        #chat-messages::-webkit-scrollbar-thumb { background: #555; }
+        .chat-msg { word-wrap: break-word; line-height: 1.4; border-bottom: 1px solid #222; padding-bottom: 2px; }
+        .chat-msg b { color: #f1c40f; margin-right: 5px; }
+        #chat-input-box { display: flex; border-top: 1px solid #444; }
+        #chat-input { background: #111; border: none; color: #fff; padding: 8px; flex-grow: 1; font-size: 12px; outline: none; }
+
         .leaderboard-container { background: rgba(0,0,0,0.85); border: 1px solid #444; border-radius: 8px; width: 200px; overflow: hidden; transition: 0.3s; }
         .leaderboard-header { background: #222; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid #444; }
         .leaderboard-header h4 { margin: 0; color: #f1c40f; font-size: 13px; letter-spacing: 1px; }
@@ -192,6 +208,13 @@
             </div>
         </div>
 
+        <div id="chat-container">
+            <div id="chat-messages"></div>
+            <div id="chat-input-box">
+                <input type="text" id="chat-input" placeholder="Type to chat..." maxlength="100">
+            </div>
+        </div>
+
         <div id="shop-overlay" class="overlay">
             <div class="shop-header">
                 <h1>ARMORY & LOGISTICS</h1>
@@ -224,7 +247,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, limit, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBimAEB2clwCHEq8Ol7MDAulTYjalaFCos",
@@ -258,6 +281,40 @@
     let round = 1, timeLeft = 20, lastTick = Date.now(), refreshUsed = 0, lastDartTime = 0;
     const refreshCosts = [1, 2, 5, 10, 20];
     let tempBuff = { active: false, fr: 1, reg: 0 };
+
+    const chatContainer = document.getElementById('chat-container');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+
+    chatInput.onfocus = () => { isMouseDown = false; keys = {}; }; 
+
+    const chatQuery = query(collection(db, "global_chat"), orderBy("timestamp", "desc"), limit(30));
+    onSnapshot(chatQuery, (snapshot) => {
+        chatMessages.innerHTML = "";
+        snapshot.docs.reverse().forEach(doc => {
+            const data = doc.data();
+            const div = document.createElement('div');
+            div.className = 'chat-msg';
+            div.innerHTML = `<b>${data.user}:</b> ${data.text}`;
+            chatMessages.appendChild(div);
+        });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+
+    async function sendMessage() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+        const userName = auth.currentUser ? auth.currentUser.displayName.split(' ')[0] : "Guest";
+        
+        try {
+            await addDoc(collection(db, "global_chat"), {
+                user: userName,
+                text: text,
+                timestamp: serverTimestamp()
+            });
+            chatInput.value = "";
+        } catch (e) { console.error("Error sending message: ", e); }
+    }
 
     const gunScroll = document.getElementById('gun-scroll');
     gunScroll.addEventListener('wheel', (e) => {
@@ -319,6 +376,7 @@
         document.getElementById('save-menu').style.display = 'none';
         document.getElementById('gun-menu').style.display = 'flex';
         document.getElementById('cloud-ui').style.opacity = '0';
+        chatContainer.style.display = 'none';
         selectGun('m4a1');
     };
 
@@ -326,6 +384,7 @@
         document.getElementById('gun-menu').style.display = 'none';
         document.getElementById('save-menu').style.display = 'flex';
         document.getElementById('cloud-ui').style.opacity = '1';
+        chatContainer.style.display = 'none';
     };
 
     window.selectGun = (gun) => {
@@ -353,10 +412,12 @@
             gameState = "SHOP";
             document.getElementById('shop-overlay').style.display = 'flex';
             document.getElementById('cloud-ui').style.opacity = '0';
+            chatContainer.style.display = 'none';
             updateShopUI();
         } else {
             gameState = "BATTLE";
             document.getElementById('cloud-ui').style.opacity = '1';
+            chatContainer.style.display = 'flex';
             player.shieldMax = player.shield; 
             lastTick = Date.now();
         }
@@ -516,6 +577,7 @@
     document.getElementById("confirm-btn").onclick = () => {
         shopOverlay.style.display = "none";
         document.getElementById('cloud-ui').style.opacity = '1';
+        chatContainer.style.display = 'flex';
         gameState = "TRANSITION";
         player.shieldMax = player.shield; 
         setTimeout(() => { 
@@ -528,11 +590,17 @@
     const pauseOverlay = document.getElementById("pause-overlay");
 
     window.onkeydown = e => {
+        if (document.activeElement === chatInput) {
+            if (e.code === "Enter") sendMessage();
+            return;
+        }
         keys[e.code] = true;
         if (e.code === "Escape") togglePause();
+        if (e.code === "Enter") chatInput.focus();
         if (e.code === "Tab") { e.preventDefault(); showInventory(); }
     };
     window.onkeyup = e => {
+        if (document.activeElement === chatInput) return;
         keys[e.code] = false;
         if (e.code === "Tab") inventoryOverlay.style.display = "none";
     };
@@ -574,6 +642,7 @@
     let mousePos = {x:0, y:0}, isMouseDown = false, lastShot = 0;
 
     canvas.onmousedown = () => {
+        if (document.activeElement === chatInput) chatInput.blur();
         if (gameState === "BATTLE") { isMouseDown = true; if (!player.isAuto) tryShoot(); }
         else if (gameState === "PAUSED") togglePause();
     };
@@ -599,8 +668,36 @@
         let x, y, side = Math.floor(Math.random()*4);
         if(side==0){x=-30; y=Math.random()*650;} else if(side==1){x=930; y=Math.random()*650;}
         else if(side==2){x=Math.random()*900; y=-30;} else {x=Math.random()*900; y=680;}
-        let hp = (round >= 5 && Math.random() < 0.3) ? 2 : 1;
-        enemies.push({ id: Math.random(), x, y, hp, maxHp: hp, speed: 1.0 + (round*0.06), atkTimer: 0 });
+        
+        // Base Enemy Values
+        let hp = 1;
+        let speed = 1.0 + (round * 0.06);
+        let color = "#2ecc71";
+        
+        // Elite Check (Random chance based on round)
+        if (round >= 5 && Math.random() < 0.3) {
+            hp = 2;
+            color = "#9b59b6";
+        }
+
+        // EVERY 5 ROUNDS MECHANIC: 50% lowest tier enemies gain 2x HP and 2x SPEED
+        if (round > 0 && round % 5 === 0 && hp === 1) {
+            if (Math.random() < 0.5) {
+                hp *= 2;
+                speed *= 2;
+                color = "#e67e22"; // Distinct orange color for boosted enemies
+            }
+        }
+
+        enemies.push({ 
+            id: Math.random(), 
+            x, y, 
+            hp, 
+            maxHp: hp, 
+            speed, 
+            color,
+            atkTimer: 0 
+        });
     }
 
     function update() {
@@ -623,13 +720,16 @@
                 while (player.xp >= 50 * Math.pow(1.25, player.level - 1)) { player.xp -= 50 * Math.pow(1.25, player.level - 1); player.level++; }
                 updateXPBar(); round++; syncCloud(); gameState = "SHOP"; updateMenuUI();
                 shopOverlay.style.display = "flex"; document.getElementById('cloud-ui').style.opacity = '0';
+                chatContainer.style.display = 'none';
                 updateShopUI(); return;
             }
         }
-        if (isMouseDown && player.isAuto) tryShoot();
+        if (isMouseDown && player.isAuto && document.activeElement !== chatInput) tryShoot();
         const ms = 3.6;
-        if(keys["KeyW"]) player.y -= ms; if(keys["KeyS"]) player.y += ms;
-        if(keys["KeyA"]) player.x -= ms; if(keys["KeyD"]) player.x += ms;
+        if (document.activeElement !== chatInput) {
+            if(keys["KeyW"]) player.y -= ms; if(keys["KeyS"]) player.y += ms;
+            if(keys["KeyA"]) player.x -= ms; if(keys["KeyD"]) player.x += ms;
+        }
         player.x = Math.max(20, Math.min(880, player.x));
         player.y = Math.max(20, Math.min(630, player.y));
         for(let i=darts.length-1; i>=0; i--) {
@@ -646,8 +746,6 @@
             let oldX = b.x, oldY = b.y;
             b.x += b.sx; b.y += b.sy; b.d += player.bulletSpeed;
             if(b.d > player.range) { bullets.splice(i,1); continue; }
-            
-            // Sub-stepping for fast bullets (High velocity fix)
             let steps = player.bulletSpeed > 25 ? 4 : 1;
             for(let s=1; s<=steps; s++) {
                 let checkX = oldX + (b.sx * (s/steps));
@@ -691,7 +789,7 @@
             ctx.fillRect(b.x, b.y, selectedGun === 'awm' ? 12 : 6, selectedGun === 'awm' ? 4 : 6); 
         });
         enemies.forEach(e => {
-            ctx.fillStyle = e.maxHp > 1 ? "#9b59b6" : "#2ecc71"; ctx.fillRect(e.x, e.y, 20, 20);
+            ctx.fillStyle = e.color; ctx.fillRect(e.x, e.y, 20, 20);
             ctx.fillStyle="#333"; ctx.fillRect(e.x, e.y-12, 20, 5);
             ctx.fillStyle="#f00"; ctx.fillRect(e.x, e.y-12, 20*(e.hp/e.maxHp), 5);
         });

@@ -1,42 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Pixel Survivor: Elite Edition - Cloud Sync</title>
+    <title>Pixel Survivor: Elite Edition</title>
     <style>
         body { background: #050505; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; }
         #game-container { position: relative; width: 900px; height: 650px; }
         canvas { background: #0a0a0a; border: 4px solid #444; display: block; cursor: crosshair; }
         
-        /* 云端 UI 扩展 */
+        /* 云端 UI */
         .cloud-ui { position: absolute; top: 10px; left: 10px; z-index: 300; display: flex; gap: 15px; align-items: flex-start; }
-        #login-btn { background: #4285F4; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        #login-btn:hover { background: #357ae8; box-shadow: 0 0 10px rgba(66,133,244,0.5); }
-        .leaderboard-mini { background: rgba(0,0,0,0.8); border: 1px solid #444; padding: 10px; color: #aaa; font-size: 12px; width: 150px; border-radius: 5px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .leaderboard-mini h4 { margin: 0 0 5px 0; color: #f1c40f; text-align: center; border-bottom: 1px solid #333; padding-bottom: 3px; }
+        #login-btn { background: #4285F4; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .leaderboard-mini { background: rgba(0,0,0,0.7); border: 1px solid #444; padding: 10px; color: #aaa; font-size: 12px; width: 150px; border-radius: 5px; }
+        .leaderboard-mini h4 { margin: 0 0 5px 0; color: #f1c40f; text-align: center; }
 
-        /* Global Overlay Style */
-        .overlay { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            display: none; flex-direction: column; align-items: center; color: white; z-index: 100;
-            padding: 30px; box-sizing: border-box;
-        }
-
-        /* SHOP UI */
+        /* 全局 Overlay */
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; color: white; z-index: 100; padding: 30px; box-sizing: border-box; }
         #shop-overlay { background: rgba(0,0,0,0.98); }
         .shop-header { width: 95%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #444; padding-bottom: 15px; }
         .shop-header h1 { font-size: 42px; color: #f1c40f; margin: 0; letter-spacing: 2px; }
         .points-info { font-size: 36px; color: #2ecc71; font-weight: bold; background: #222; padding: 5px 25px; border-radius: 10px; border: 1px solid #555; }
 
-        /* PAUSE UI */
         #pause-overlay { background: rgba(0,0,0,0.85); justify-content: center; cursor: pointer; }
         #pause-overlay h2 { font-size: 64px; color: #f1c40f; margin-bottom: 10px; letter-spacing: 5px; }
         #pause-overlay p { font-size: 24px; color: #aaa; }
 
         .cards-container { display: flex; gap: 20px; justify-content: center; width: 100%; height: 440px; }
-        .skill-card { 
-            width: 280px; height: 100%; background: #1a1a1a; border: 3px solid #444; border-radius: 20px;
-            display: flex; flex-direction: column; padding: 25px; transition: 0.2s; box-sizing: border-box; cursor: pointer;
-        }
+        .skill-card { width: 280px; height: 100%; background: #1a1a1a; border: 3px solid #444; border-radius: 20px; display: flex; flex-direction: column; padding: 25px; transition: 0.2s; box-sizing: border-box; cursor: pointer; }
         .skill-card:hover { transform: translateY(-10px); border-color: #fff; background: #252525; }
         .skill-card.sold-out { opacity: 0.1; filter: grayscale(1); pointer-events: none; }
 
@@ -57,8 +46,6 @@
         .btn { padding: 18px 45px; font-size: 22px; font-weight: bold; border-radius: 12px; cursor: pointer; border: none; transition: 0.2s; text-transform: uppercase; }
         .refresh-btn { background: #34495e; color: white; border: 2px solid #5d6d7e; }
         .confirm-btn { background: #27ae60; color: white; box-shadow: 0 5px 20px rgba(39, 174, 96, 0.4); }
-        .confirm-btn:hover { background: #2ecc71; transform: scale(1.05); }
-
         .insufficient { color: #e74c3c !important; }
     </style>
 </head>
@@ -96,7 +83,6 @@
     </div>
 
 <script type="module">
-    // --- FIREBASE 核心配置 (保持你的原有 ID) ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
@@ -115,58 +101,41 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // 登录函数
-    window.login = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(err => {
-        if(err.code === 'auth/popup-blocked') alert("请允许浏览器弹出窗口以进行登录！");
-    });
+    window.login = () => signInWithPopup(auth, new GoogleAuthProvider());
 
-    // 【核心修复】：登录状态监听 + 自动读取存档
+    // 【修改点 1：登录拉取存档】
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             document.getElementById('login-btn').innerText = user.displayName.split(' ')[0].toUpperCase();
-            
-            // 从 Firestore 获取存档
             const snap = await getDoc(doc(db, "pixel_stats", user.uid));
             if(snap.exists()) {
-                const cloudData = snap.data();
-                player.highScore = cloudData.highScore || 0; // 同步最高分
-                console.log("云端存档已加载。最高分:", player.highScore);
+                player.highScore = snap.data().highScore || 0;
             }
-        } else {
-            document.getElementById('login-btn').innerText = "GMAIL LOGIN";
         }
     });
 
-    // 实时排行榜监听
     onSnapshot(query(collection(db, "pixel_stats"), orderBy("highScore", "desc"), limit(5)), (s) => {
         const list = document.getElementById('rank-list');
         list.innerHTML = '';
         s.forEach(d => {
-            list.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:2px">
-                <span style="color:#eee">${d.data().name}</span>
-                <b style="color:#f1c40f">${d.data().highScore}</b>
-            </div>`;
+            list.innerHTML += `<div style="display:flex; justify-content:space-between"><span>${d.data().name}</span><b>${d.data().highScore}</b></div>`;
         });
     });
 
-    // 云端同步函数
+    // 【修改点 2：同步逻辑更新】
     async function syncCloud() {
         if (auth.currentUser) {
-            try {
-                // 计算新的最高分
-                const newBest = Math.max(player.score, player.highScore || 0);
-                await setDoc(doc(db, "pixel_stats", auth.currentUser.uid), {
-                    name: auth.currentUser.displayName.split(' ')[0],
-                    highScore: newBest,
-                    lastRound: round,
-                    lastSync: new Date().getTime()
-                }, { merge: true });
-                player.highScore = newBest; // 更新本地记录
-            } catch (e) { console.error("同步失败:", e); }
+            const currentBest = Math.max(player.score, player.highScore || 0);
+            await setDoc(doc(db, "pixel_stats", auth.currentUser.uid), {
+                name: auth.currentUser.displayName.split(' ')[0],
+                highScore: currentBest,
+                lastRound: round
+            }, { merge: true });
+            player.highScore = currentBest;
         }
     }
 
-    // --- 游戏引擎部分 ---
+    // --- 游戏原始逻辑 ---
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
     const shopOverlay = document.getElementById("shop-overlay");
@@ -182,7 +151,7 @@
         x: 450, y: 325, score: 0, hp: 100, maxHp: 100, shield: 0,
         baseDamage: 0.6, critRate: 0.05, dodgeRate: 0.01,
         fireRate: 200, pierce: 1, range: 750, regen: 0, dartLevel: 0,
-        highScore: 0 // 初始值会被云端覆盖
+        highScore: 0
     };
 
     let enemies = [], bullets = [], darts = [], keys = {};
@@ -191,16 +160,16 @@
     let tempBuff = { active: false, fr: 1, reg: 0 };
 
     const allSkills = [
-        { n: "Tactical Repair", d: "Instantly restore 20 HP. Essential for survival.", v: () => player.hp = Math.min(player.maxHp, player.hp + 20), r: 50, p: 10 },
-        { n: "Energy Shield", d: "Gain 20 Shield capacity. Absorbs impacts.", v: () => player.shield += 20, r: 50, p: 10 },
-        { n: "Cellular Regen", d: "Recover 1 HP every second.", v: () => player.regen += 1, r: 25, p: 20 },
-        { n: "Critical Analysis", d: "Crit Rate +8%. Deal double damage.", v: () => player.critRate += 0.08, r: 25, p: 20 },
-        { n: "Overclock Mod", d: "Fire Rate +15%. Volume of fire is key.", v: () => player.fireRate *= 0.85, r: 20, p: 25 },
-        { n: "Railgun Ammo", d: "Pierce +1. Bullets travel through enemies.", v: () => player.pierce += 1, r: 20, p: 25 },
-        { n: "Predator Darts", d: "Activate auto-tracking darts.", v: () => player.dartLevel += 1, r: 10, p: 30 },
-        { n: "Titan Core", d: "Max HP +30 and full heal.", v: () => { player.maxHp += 30; player.hp = player.maxHp; }, r: 10, p: 30 },
-        { n: "Berserker Drive", d: "[ROUND ONLY] Massive fire rate boost.", v: () => { tempBuff.fr = 5; tempBuff.reg = 3; tempBuff.active = true; }, r: 5, p: 35 },
-        { n: "God Protocol", d: "Ultimate boost to Range, Pierce, and Damage.", v: () => { player.range *= 1.5; player.pierce += 2; player.baseDamage += 0.4; }, r: 1, p: 40 }
+        { n: "Tactical Repair", d: "Instantly restore 20 HP. Under massive damage pressure, survival is the only objective.", v: () => player.hp = Math.min(player.maxHp, player.hp + 20), r: 50, p: 10 },
+        { n: "Energy Shield", d: "Gain 20 Shield capacity. Shields absorb huge impacts, acting as a vital safety buffer.", v: () => player.shield += 20, r: 50, p: 10 },
+        { n: "Cellular Regen", d: "Recover 1 HP every second. Provides essential sustainability during long skirmishes.", v: () => player.regen += 1, r: 25, p: 20 },
+        { n: "Critical Analysis", d: "Crit Rate +8%. Target structural weaknesses to deal 200% lethal damage.", v: () => player.critRate += 0.08, r: 25, p: 20 },
+        { n: "Overclock Mod", d: "Fire Rate +15%. High volume of fire is the ultimate solution to any enemy swarm.", v: () => player.fireRate *= 0.85, r: 20, p: 25 },
+        { n: "Railgun Ammo", d: "Pierce +1. Bullets will now travel through multiple enemies with devastating effect.", v: () => player.pierce += 1, r: 20, p: 25 },
+        { n: "Predator Darts", d: "Activate auto-tracking darts. Targets the toughest enemies every 10 seconds.", v: () => player.dartLevel += 1, r: 10, p: 30 },
+        { n: "Titan Core", d: "Max HP +30 and full heal. Upgrades your chassis to endure the most hostile environments.", v: () => { player.maxHp += 30; player.hp = player.maxHp; }, r: 10, p: 30 },
+        { n: "Berserker Drive", d: "[ROUND ONLY] Fire Rate x5 & massive regen. Unleash absolute carnage.", v: () => { tempBuff.fr = 5; tempBuff.reg = 3; tempBuff.active = true; }, r: 5, p: 35 },
+        { n: "God Protocol", d: "Ultimate augmentation. Drastically improves Range, Pierce, and Base Damage.", v: () => { player.range *= 1.5; player.pierce += 2; player.baseDamage += 0.4; }, r: 1, p: 40 }
     ];
 
     function togglePause() {
@@ -212,7 +181,6 @@
         }
     }
 
-    window.addEventListener("blur", () => { if (gameState === "BATTLE") togglePause(); });
     pauseOverlay.onclick = togglePause;
     window.onkeydown = e => { keys[e.code] = true; if (e.code === "Escape") togglePause(); };
     window.onkeyup = e => keys[e.code] = false;
@@ -288,7 +256,7 @@
             timeLeft--; lastTick = now;
             player.hp = Math.min(player.maxHp, player.hp + player.regen + (tempBuff.active ? tempBuff.reg : 0));
             if (timeLeft <= 0) {
-                syncCloud(); // 每轮结束上传数据
+                syncCloud(); // 同步
                 gameState = "SHOP"; round++; shopOverlay.style.display = "flex"; updateShopUI();
                 return;
             }
@@ -328,11 +296,7 @@
             }
             if (e.hp <= 0) { player.score += e.maxHp; enemies.splice(i, 1); }
         });
-        
-        if (player.hp <= 0) { 
-            syncCloud(); // 死亡同步
-            alert("MISSION FAILED! Final Score: " + player.score); location.reload(); 
-        }
+        if (player.hp <= 0) { syncCloud(); alert("MISSION FAILED! Final Score: " + player.score); location.reload(); }
     }
 
     function draw() {
@@ -344,26 +308,19 @@
             ctx.fillRect(e.x, e.y, 20, 20);
             ctx.fillStyle="#333"; ctx.fillRect(e.x, e.y-12, 20, 5);
             ctx.fillStyle="#f00"; ctx.fillRect(e.x, e.y-12, 20*(e.hp/e.maxHp), 5);
+            ctx.fillStyle="#fff"; ctx.font="bold 12px Arial"; ctx.fillText(Math.ceil(e.hp), e.x, e.y-18);
         });
-        
-        // 玩家绘制
         ctx.fillStyle="#3498db"; ctx.fillRect(player.x, player.y, 20, 20);
-        
-        // UI 绘制
         ctx.fillStyle="#fff"; ctx.font="bold 20px monospace";
-        ctx.fillText(`WAVE: ${round} | POINTS: ${player.score}`, 20, 35);
-        
-        // 【新增】：云端最高分显示
-        ctx.fillStyle="#f1c40f"; ctx.font="bold 14px monospace";
-        ctx.fillText(`CLOUD BEST: ${player.highScore || 0}`, 20, 55);
-        
-        // 血条和盾条
-        ctx.fillStyle="#333"; ctx.fillRect(20, 70, 250, 18);
-        ctx.fillStyle="#f44"; ctx.fillRect(20, 70, 250*(player.hp/player.maxHp), 18);
+        // 【修改点 3：UI 展示最高分】
+        ctx.fillText(`WAVE: ${round} | PT: ${player.score} | BEST: ${player.highScore}`, 20, 35);
+        ctx.fillStyle="#333"; ctx.fillRect(20, 55, 250, 18);
+        ctx.fillStyle="#f44"; ctx.fillRect(20, 55, 250*(player.hp/player.maxHp), 18);
+        ctx.fillStyle="#fff"; ctx.font="bold 14px Arial"; ctx.fillText(`HP: ${Math.ceil(player.hp)} / ${player.maxHp}`, 280, 70);
         if(player.shield > 0) {
-            ctx.fillStyle="#0df"; ctx.fillRect(20, 95, Math.min(250, (player.shield/100)*250), 8);
+            ctx.fillStyle="#068"; ctx.fillRect(20, 80, 250, 12);
+            ctx.fillStyle="#0df"; ctx.fillRect(20, 80, Math.min(250, (player.shield/100)*250), 12);
         }
-
         if (gameState === "TRANSITION") {
             ctx.fillStyle="rgba(0,0,0,0.8)"; ctx.fillRect(0,0,900,650);
             ctx.fillStyle="#fff"; ctx.font="bold 70px Arial"; ctx.textAlign="center";

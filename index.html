@@ -70,7 +70,7 @@
             position: absolute; right: -180px; top: 50%; transform: translateY(-50%);
             width: 220px; height: 300px; background: rgba(0,0,0,0.7);
             border: 1px solid #444; border-right: none; border-radius: 10px 0 0 10px;
-            display: none; flex-direction: column; transition: right 0.3s ease, opacity 0.3s ease; z-index: 450;
+            display: none; flex-direction: column; transition: right 0.3s ease, opacity 0.3s ease; z-index: 600;
             overflow: hidden; opacity: 0.5;
         }
         #chat-container:hover, #chat-container:focus-within { right: 0; opacity: 1; background: rgba(0,0,0,0.9); }
@@ -106,8 +106,10 @@
         .shop-header h1 { font-size: 42px; color: #f1c40f; margin: 0; letter-spacing: 2px; }
         .points-info { font-size: 36px; color: #2ecc71; font-weight: bold; background: #222; padding: 5px 25px; border-radius: 10px; border: 1px solid #555; }
         
-        #pause-overlay { background: rgba(0,0,0,0.85); justify-content: center; cursor: pointer; }
+        #pause-overlay { background: rgba(0,0,0,0.85); justify-content: center; pointer-events: none; }
         #pause-overlay h2 { font-size: 64px; color: #f1c40f; margin-bottom: 10px; letter-spacing: 5px; }
+        #pause-resume-btn { pointer-events: all; padding: 14px 50px; font-size: 20px; background: #27ae60; color: #fff; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; text-transform: uppercase; margin-top: 10px; }
+        #pause-resume-btn:hover { background: #2ecc71; }
 
         #inventory-overlay {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -232,9 +234,10 @@
             </div>
         </div>
 
-        <div id="pause-overlay" class="overlay" onclick="togglePause()">
+        <div id="pause-overlay" class="overlay">
             <h2>PAUSED</h2>
-            <p>Click or Press ESC to Resume Combat</p>
+            <p>Press ESC to Resume Combat</p>
+            <button id="pause-resume-btn" onclick="togglePause()">RESUME</button>
         </div>
 
         <div id="inventory-overlay">
@@ -600,6 +603,7 @@
     window.onkeydown = e => {
         if (document.activeElement === chatInput) {
             if (e.code === "Enter") sendMessage();
+            if (e.code === "Escape") chatInput.blur(); // ★ ESC 先收起输入框，不触发暂停
             return;
         }
         keys[e.code] = true;
@@ -617,7 +621,9 @@
         if (["SHOP", "TRANSITION", "MENU", "GUN"].includes(gameState)) return;
         if (gameState === "BATTLE") { 
             gameState = "PAUSED"; 
-            pauseOverlay.style.display = "flex"; 
+            pauseOverlay.style.display = "flex";
+            // ★ 暂停时保持聊天框可见
+            chatContainer.style.display = 'flex';
         } else if (gameState === "PAUSED") { 
             gameState = "BATTLE"; 
             pauseOverlay.style.display = "none"; 
@@ -817,21 +823,11 @@
                     d.target.hp -= player.dartDamage;
                     d.hitEnemies.push(d.target.id);
                 }
-                // ★ 计算当前飞行方向，转入自由飞行而不是销毁
-                let prevT = (d.life - 1) / d.maxLife;
-                let prevBx = d.startX + (d.target.x - d.startX) * prevT;
-                let prevBy = d.startY + (d.target.y - d.startY) * prevT;
-                let prevAngle = Math.atan2(d.target.y - d.startY, d.target.x - d.startX);
-                let prevOffset = Math.sin(Math.PI * prevT) * d.curveDir;
-                let prevX = prevBx + Math.cos(prevAngle + Math.PI/2) * prevOffset;
-                let prevY = prevBy + Math.sin(prevAngle + Math.PI/2) * prevOffset;
-
-                let dirX = d.x - prevX;
-                let dirY = d.y - prevY;
-                let mag = Math.hypot(dirX, dirY) || 1;
-                let spd = 8; // 自由飞行速度
-                d.vx = (dirX / mag) * spd;
-                d.vy = (dirY / mag) * spd;
+                // ★ 用起点→目标方向作为自由飞行方向，避免方向向量为0卡死
+                let freeAngle = Math.atan2(d.target.y - d.startY, d.target.x - d.startX);
+                let spd = 8;
+                d.vx = Math.cos(freeAngle) * spd;
+                d.vy = Math.sin(freeAngle) * spd;
                 d.escaped = true;
                 continue;
             }

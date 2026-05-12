@@ -362,7 +362,7 @@
         inventory: [],
         gunLevels: { m4a1: 0, awm: 0, mp5: 0, pkm: 0 },
         // Ammo stock (reserve, not mag)
-        ammoStock: { m4a1: 200, awm: 200, mp5: 200, pkm: 200 },
+        ammoStock: { m4a1: 200, awm: 30, mp5: 300, pkm: 300 },
         // Ammo purchase count resets each shop visit (per round)
         ammoBuyCount: { m4a1: 0, awm: 0, mp5: 0, pkm: 0 },
         moveSpeed: 3.6
@@ -573,7 +573,7 @@
             dartLevel: 0, dartDamage: 5, dartCooldown: 5000,
             moveSpeed: 3.6,
             gunLevels: player.gunLevels || { m4a1: 0, awm: 0, mp5: 0, pkm: 0 },
-            ammoStock: player.ammoStock || { m4a1: 200, awm: 200, mp5: 200, pkm: 200 },
+            ammoStock: player.ammoStock || { m4a1: 200, awm: 30, mp5: 300, pkm: 300 },
             ammoBuyCount: { m4a1: 0, awm: 0, mp5: 0, pkm: 0 },
             highRound: player.highRound || 1,
             level: player.level || 1,
@@ -624,9 +624,14 @@
 
         // Ensure new fields exist for old saves
         if (!player.gunLevels) player.gunLevels = { m4a1: 0, awm: 0, mp5: 0, pkm: 0 };
-        if (!player.ammoStock) player.ammoStock = { m4a1: 200, awm: 200, mp5: 200, pkm: 200 };
+        if (!player.ammoStock) player.ammoStock = { m4a1: 200, awm: 30, mp5: 300, pkm: 300 };
         if (!player.ammoBuyCount) player.ammoBuyCount = { m4a1: 0, awm: 0, mp5: 0, pkm: 0 };
         if (!player.moveSpeed) player.moveSpeed = 3.6;
+        // IMPORTANT: gun levels are account-wide. The global `player.gunLevels` was already
+        // loaded from Firebase on login. We copy it into this save's player object so upgrades
+        // done in this session are preserved account-wide on next syncCloud().
+        // (We don't read gunLevels from the save — we always trust the Firebase copy.)
+        player.gunLevels = window._accountGunLevels || player.gunLevels;
 
         // Apply gun upgrades on top of base
         applyGunToPlayer(selectedGun);
@@ -701,9 +706,11 @@
                 player.highRound = d.highRound || 1;
                 player.level = d.level || 1;
                 player.xp = d.xp || 0;
-                if (d.gunLevels) player.gunLevels = d.gunLevels;
-                if (d.ammoStock) player.ammoStock = d.ammoStock;
-                if (d.ammoBuyCount) player.ammoBuyCount = d.ammoBuyCount;
+                // gunLevels are ACCOUNT-WIDE — always load from Firebase, never from save
+                if (d.gunLevels) {
+                    player.gunLevels = d.gunLevels;
+                    window._accountGunLevels = { ...d.gunLevels };
+                }
             }
             updateNameUI();
         }
@@ -718,12 +725,18 @@
             const data = d.data();
             const currentRound = data.currentRound || data.highRound || 1;
             const level = data.level || 1;
+            // Find highest gun level
+            const gl = data.gunLevels || {};
+            const gunNames = { m4a1: 'M4A1', awm: 'AWM', mp5: 'MP5', pkm: 'PKM' };
+            let bestGun = 'NONE', bestLvl = 0;
+            Object.entries(gl).forEach(([g, lv]) => { if (lv > bestLvl) { bestLvl = lv; bestGun = gunNames[g] || g.toUpperCase(); } });
+            const bestGunStr = bestLvl > 0 ? `${bestGun} Lv${bestLvl}` : 'No upgrades';
             const item = document.createElement('div');
             item.className = 'rank-item';
             item.innerHTML = `
                 <span>${data.name}</span>
                 <b>R${data.highRound || 1}</b>
-                <div class="player-tooltip">LVL ${level} | Now: R${currentRound}</div>
+                <div class="player-tooltip">LVL ${level} | Now: R${currentRound} | Best gun: ${bestGunStr}</div>
             `;
             list.appendChild(item);
         });
@@ -738,10 +751,9 @@
                 level: player.level,
                 xp: Math.floor(player.xp),
                 currentRound: round,
-                gunLevels: player.gunLevels,
-                ammoStock: player.ammoStock,
-                ammoBuyCount: player.ammoBuyCount
+                gunLevels: player.gunLevels
             }, { merge: true });
+            window._accountGunLevels = { ...player.gunLevels };
             player.highRound = currentBestRound;
             updateNameUI();
         }
@@ -853,6 +865,7 @@
                     player.level = newLevel;
                     player.xp = totalXp;
                     player.gunLevels[gunKey] = lvl + 1;
+                    window._accountGunLevels = { ...player.gunLevels };
                     updateNameUI();
                     updateXPBar();
                     // Rebuild card

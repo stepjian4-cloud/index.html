@@ -210,7 +210,7 @@
                 <div class="gun-stats">
                     FIRE RATE: <b>250ms</b><br>
                     MODE: <b>FULL-AUTO</b><br>
-                    DAMAGE: <b>0.6</b><br>
+                    DAMAGE: <b>0.30</b><br>
                     VELOCITY: <b>NORMAL</b><br>
                     PIERCE: <b>0 (BASE)</b><br>
                     RANGE: <b>750px</b><br>
@@ -224,7 +224,7 @@
                 <div class="gun-stats">
                     FIRE RATE: <b>1000ms</b><br>
                     MODE: <b>SEMI-AUTO</b><br>
-                    DAMAGE: <b>5.0</b><br>
+                    DAMAGE: <b>2.50</b><br>
                     VELOCITY: <b>EXTREME (3x)</b><br>
                     PIERCE: <b>INFINITE</b><br>
                     RANGE: <b>3750px</b><br>
@@ -236,13 +236,13 @@
             <div class="gun-card" id="gun-mp5" onclick="selectGun('mp5')">
                 <h2>MP5</h2>
                 <div class="gun-stats">
-                    FIRE RATE: <b>167ms (1.5x)</b><br>
+                    FIRE RATE: <b>167ms (1.5x M4A1)</b><br>
                     MODE: <b>FULL-AUTO</b><br>
-                    DAMAGE: <b>0.54 (-10%)</b><br>
+                    DAMAGE: <b>0.27 (-10%)</b><br>
                     VELOCITY: <b>-20% (14.4)</b><br>
                     PIERCE: <b>0 (BASE)</b><br>
                     RANGE: <b>600px (-20%)</b><br>
-                    SPREAD: <b>UP TO 10°</b><br>
+                    SPREAD: <b>UP TO 10° (random)</b><br>
                     MOVE SPD: <b>+20%</b><br>
                     MAG: <b>40 / 60 (Lv10+)</b><br>
                     RELOAD: <b>2s / 2.5s (Lv10+)</b><br>
@@ -254,7 +254,7 @@
                 <div class="gun-stats">
                     FIRE RATE: <b>313ms (0.8x)</b><br>
                     MODE: <b>FULL-AUTO</b><br>
-                    DAMAGE: <b>0.69 (+15%)</b><br>
+                    DAMAGE: <b>0.345 (+15%)</b><br>
                     VELOCITY: <b>+10% (19.8)</b><br>
                     PIERCE: <b>1 (BASE)</b><br>
                     RANGE: <b>825px (+10%)</b><br>
@@ -371,11 +371,12 @@
     let reloadTimeLeft = 0;
     let reloadStartTime = 0;
 
+    // ALL base damage halved per request
     const GUN_BASE = {
-        m4a1: { fireRate: 250, baseDamage: 0.6, range: 750, bulletSpeed: 18, pierce: 0, isAuto: true, magBase: 30, magLv10: 45, reloadBase: 2.0, reloadLv10: 2.5, moveSpeed: 3.6 },
-        awm:  { fireRate: 1000, baseDamage: 5.0, range: 3750, bulletSpeed: 54, pierce: 999, isAuto: false, magBase: 5, magLv10: 10, reloadBase: 3.0, reloadLv10: 3.0, moveSpeed: 3.6 },
-        mp5:  { fireRate: 111, baseDamage: 0.54, range: 600, bulletSpeed: 14.4, pierce: 0, isAuto: true, magBase: 40, magLv10: 60, reloadBase: 2.0, reloadLv10: 2.5, moveSpeed: 4.32 },
-        pkm:  { fireRate: 313, baseDamage: 0.69, range: 825, bulletSpeed: 19.8, pierce: 1, isAuto: true, magBase: 125, magLv10: 250, reloadBase: 5.0, reloadLv10: 7.0, moveSpeed: 2.52 }
+        m4a1: { fireRate: 250, baseDamage: 0.30, range: 750, bulletSpeed: 18, pierce: 0, isAuto: true, magBase: 30, magLv10: 45, reloadBase: 2.0, reloadLv10: 2.5, moveSpeed: 3.6, spreadDeg: 0 },
+        awm:  { fireRate: 1000, baseDamage: 2.50, range: 3750, bulletSpeed: 54, pierce: 999, isAuto: false, magBase: 5, magLv10: 10, reloadBase: 3.0, reloadLv10: 3.0, moveSpeed: 3.6, spreadDeg: 0 },
+        mp5:  { fireRate: 167, baseDamage: 0.27, range: 600, bulletSpeed: 14.4, pierce: 0, isAuto: true, magBase: 40, magLv10: 60, reloadBase: 2.0, reloadLv10: 2.5, moveSpeed: 4.32, spreadDeg: 10 },
+        pkm:  { fireRate: 313, baseDamage: 0.345, range: 825, bulletSpeed: 19.8, pierce: 1, isAuto: true, magBase: 125, magLv10: 250, reloadBase: 5.0, reloadLv10: 7.0, moveSpeed: 2.52, spreadDeg: 3, triggerDelay: 100 }
     };
 
     // Per-gun XP cost multipliers: each level costs base * gunMult * 2^currentLevel
@@ -617,6 +618,7 @@
         if (!player.ammoStock) player.ammoStock = { m4a1: 200, awm: 30, mp5: 300, pkm: 300 };
         if (!player.ammoBuyCount) player.ammoBuyCount = { m4a1: 0, awm: 0, mp5: 0, pkm: 0 };
         if (!player.moveSpeed) player.moveSpeed = 3.6;
+        if (!player.vampirism) player.vampirism = 0;
         player.gunLevels = window._accountGunLevels || player.gunLevels;
 
         applyGunToPlayer(selectedGun);
@@ -669,18 +671,45 @@
         icon.innerText = container.classList.contains('collapsed') ? '▲' : '▼';
     };
 
+    // vampirismChance starts at 0.1 (per-mille), halves each time picked
+    let vampirismChance = 0.1;
+
     const allSkills = [
-        { n: "Tactical Repair", d: "Instantly restore 20 HP.", v: () => { player.hp = Math.min(player.maxHp, player.hp + 20); }, r: 50, p: 10 },
-        { n: "Energy Shield", d: "Gain 20 Shield capacity.", v: () => { player.shield += 20; }, r: 50, p: 10 },
-        { n: "Cellular Regen", d: "Recover 1 HP every second.", v: () => { player.regen += 1; }, r: 25, p: 20 },
-        { n: "Critical Analysis", d: "Crit Rate +5%.", v: () => { player.critRate += 0.05; }, r: 25, p: 20 },
-        { n: "Overclock Mod", d: "Fire Rate +15%, but -5% Damage and -10% Range.", v: () => { player.fireRate *= 0.85; player.baseDamage *= 0.95; player.range *= 0.9; }, r: 20, p: 25 },
-        { n: "Railgun Ammo", d: "Pierce +1 and Damage +5%, but Fire Rate -10%.", v: () => { player.pierce += 1; player.baseDamage *= 1.05; player.fireRate *= 1.1; }, r: 20, p: 25 },
-        { n: "Predator Darts", d: "Darts Level +1 (max 3). Damage +1, CD -25%, speed -30%.", v: () => { if (player.dartLevel < 3) { player.dartLevel += 1; player.dartDamage += 1; player.dartCooldown *= 0.75; } }, r: 10, p: 30 },
-        { n: "Titan Core", d: "Max HP +30 and Heal 30 HP.", v: () => { player.maxHp += 30; player.hp = Math.min(player.maxHp, player.hp + 30); }, r: 10, p: 30 },
-        { n: "Berserker Drive", d: "[ROUND ONLY] Fire Rate x5 & Massive Regen.", v: () => { tempBuff.fr = 5; tempBuff.reg = 3; tempBuff.active = true; }, r: 5, p: 35 },
-        { n: "God Protocol", d: "Ultimate augmentation: massive stats boost.", v: () => { player.range *= 1.5; player.pierce += 2; player.baseDamage += 0.5; }, r: 1, p: 40 }
+        { n: "Tactical Repair",  d: "Instantly restore 20 HP.", v: () => { player.hp = Math.min(player.maxHp, player.hp + 20); }, r: 50, p: 10 },
+        { n: "Energy Shield",    d: "Gain 20 Shield capacity.", v: () => { player.shield += 20; }, r: 50, p: 10 },
+        { n: "Cellular Regen",   d: "Recover 1 HP every second.", v: () => { player.regen += 1; }, r: 25, p: 20 },
+        { n: "Critical Analysis",d: "Crit Rate +5%.", v: () => { player.critRate += 0.05; }, r: 25, p: 20 },
+        { n: "Overclock Mod",    d: "Fire Rate +15%, but -5% Damage and -10% Range.", v: () => { player.fireRate *= 0.85; player.baseDamage *= 0.95; player.range *= 0.9; }, r: 20, p: 25 },
+        { n: "Railgun Ammo",     d: "Pierce +1 and Damage +5%, but Fire Rate -10%.", v: () => { player.pierce += 1; player.baseDamage *= 1.05; player.fireRate *= 1.1; }, r: 20, p: 25 },
+        { n: "Predator Darts",   d: "Darts Lv+1 (max 3). DMG+1, CD-25%, speed-30%.", v: () => { if (player.dartLevel < 3) { player.dartLevel += 1; player.dartDamage += 1; player.dartCooldown *= 0.75; } }, r: 10, p: 30, dartSkill: true },
+        { n: "Titan Core",       d: "Max HP +30 and Heal 30 HP.", v: () => { player.maxHp += 30; player.hp = Math.min(player.maxHp, player.hp + 30); }, r: 10, p: 30 },
+        { n: "Berserker Drive",  d: "[ROUND ONLY] Fire Rate x5 & Massive Regen.", v: () => { tempBuff.fr = 5; tempBuff.reg = 3; tempBuff.active = true; }, r: 5, p: 35 },
+        { n: "God Protocol",     d: "Ultimate: Range+50%, Pierce+2, Damage+0.5.", v: () => { player.range *= 1.5; player.pierce += 2; player.baseDamage += 0.5; }, r: 1, p: 40 },
+        // Vampirism — 0.1‰ base, probability halves each time picked
+        { n: "Vampirism",        d: "Steal 5% of damage dealt as HP. Chance halves after each pick.", v: () => { player.vampirism = (player.vampirism || 0) + 0.05; vampirismChance /= 2; }, r: 1, p: 50, vampSkill: true },
+        // ── MP5-only ──────────────────────────────────────────────────────────────
+        { n: "SMG Converger",    d: "[MP5] Spread reduced to 3°. Unique, non-stackable.", v: () => { player.mp5Converger = true; }, r: 10, p: 25, gunOnly: 'mp5', unique: 'mp5Converger' },
+        { n: "SMG Long Barrel",  d: "[MP5] Range+10%, Damage+2%. Unique.", v: () => { player.range *= 1.10; player.baseDamage *= 1.02; player.mp5LongBarrel = true; }, r: 5, p: 30, gunOnly: 'mp5', unique: 'mp5LongBarrel' },
+        // ── AWM-only ──────────────────────────────────────────────────────────────
+        { n: "Bump Fire",        d: "[AWM] Fire Rate+10%. Unique.", v: () => { player.fireRate *= 0.90; player.awmBumpFire = true; }, r: 5, p: 30, gunOnly: 'awm', unique: 'awmBumpFire' },
+        // ── PKM-only ──────────────────────────────────────────────────────────────
+        { n: "Efficient Barrel", d: "[PKM] Remove trigger delay, add 2° spread. Unique.", v: () => { player.pkmNoDelay = true; player.pkmEfficientBarrel = true; }, r: 3, p: 30, gunOnly: 'pkm', unique: 'pkmEfficientBarrel' },
+        // ── M4A1-only ─────────────────────────────────────────────────────────────
+        { n: "Performance Barrel",d: "[M4A1] DMG+5%, Spread+1°, Range+5%. Unique.", v: () => { player.baseDamage *= 1.05; player.m4a1PerfBarrel = true; player.range *= 1.05; }, r: 2, p: 30, gunOnly: 'm4a1', unique: 'm4a1PerfBarrel' },
     ];
+
+    function getFilteredSkillPool() {
+        return allSkills.filter(s => {
+            // Gun-specific skills: only show for the matching gun
+            if (s.gunOnly && s.gunOnly !== selectedGun) return false;
+            // Unique skills: hide if already owned
+            if (s.unique && player[s.unique]) return false;
+            // Dart skill: hide if dartLevel already 3
+            if (s.dartSkill && player.dartLevel >= 3) return false;
+            // Vampirism: dynamic chance check happens in getRandomSkill
+            return true;
+        });
+    }
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -774,12 +803,23 @@
     const refreshCountText = document.getElementById("refresh-count");
 
     function getRandomSkill() {
+        const pool = getFilteredSkillPool();
+        // Check vampirism separately (dynamic ‰ chance)
+        if (Math.random() * 1000 < vampirismChance) {
+            const vamp = pool.find(s => s.vampSkill);
+            if (vamp) return vamp;
+        }
         const roll = Math.random() * 100;
         let rarity;
-        if (roll < 1) rarity = 1; else if (roll < 6) rarity = 5; else if (roll < 16) rarity = 10;
-        else if (roll < 36) rarity = 20; else if (roll < 61) rarity = 25; else rarity = 50;
-        let pool = allSkills.filter(s => s.r === rarity);
-        return pool[Math.floor(Math.random() * pool.length)];
+        if (roll < 0.1) rarity = 1; else if (roll < 5.1) rarity = 5; else if (roll < 15.1) rarity = 10;
+        else if (roll < 35.1) rarity = 20; else if (roll < 60.1) rarity = 25; else rarity = 50;
+        // Exclude vampirism from normal rarity roll (it has its own path above)
+        let rarityPool = pool.filter(s => s.r === rarity && !s.vampSkill);
+        if (rarityPool.length === 0) {
+            // Fallback to any non-vamp skill
+            rarityPool = pool.filter(s => !s.vampSkill);
+        }
+        return rarityPool[Math.floor(Math.random() * rarityPool.length)];
     }
 
     function buildGunUpgradeCard() {
@@ -871,11 +911,12 @@
             const btn = document.createElement('button');
             btn.className = 'ammo-buy-btn';
             btn.disabled = player.score < cost;
-            btn.textContent = `+${amt} rounds — ${cost}PT`;
+            const displayAmt = gunKey === 'awm' ? Math.max(1, Math.floor(amt / 10)) : amt;
+            btn.textContent = `+${displayAmt} rounds — ${cost}PT`;
             btn.onclick = () => {
                 if (player.score >= cost) {
                     player.score -= cost;
-                    player.ammoStock[gunKey] = (player.ammoStock[gunKey] || 0) + amt;
+                    player.ammoStock[gunKey] = (player.ammoStock[gunKey] || 0) + displayAmt;
                     player.ammoBuyCount[gunKey] = buyCount + 1;
                     pointsDisplay.innerText = player.score;
                     const newPanel = buildAmmoPanel();
@@ -958,7 +999,8 @@
         player.shieldMax = player.shield;
         setTimeout(() => {
             enemies = []; bullets = []; darts = []; dartSubIndex = 0; dartSubTimer = 0;
-            timeLeft = 20; refreshUsed = 0; tempBuff.active = false;
+            pkmDelayActive = false;
+            timeLeft = 40; refreshUsed = 0; tempBuff.active = false;
             isReloading = false; reloadTimeLeft = 0;
             player.ammoBuyCount = { m4a1: 0, awm: 0, mp5: 0, pkm: 0 };
             const mag = getMagSize(selectedGun);
@@ -1062,43 +1104,67 @@
             if (!player.isAuto) tryShoot();
         } else if (gameState === "PAUSED") togglePause();
     };
-    window.onmouseup = () => isMouseDown = false;
+    window.onmouseup = () => { isMouseDown = false; pkmDelayActive = false; };
     canvas.onmousemove = e => {
         const r = canvas.getBoundingClientRect();
         mousePos.x = e.clientX - r.left;
         mousePos.y = e.clientY - r.top;
     };
 
+    let pkmDelayActive = false;
+    let pkmDelayTimer = 0;
+
     function tryShoot() {
         if (isReloading) return;
-        if (magAmmo <= 0) {
-            startReload();
-            return;
-        }
+        if (magAmmo <= 0) { startReload(); return; }
         let now = Date.now();
         let fr = player.fireRate / (tempBuff.active ? tempBuff.fr : 1);
+
+        // PKM trigger delay: 0.1s before first shot (unless pkmNoDelay skill active)
+        if (selectedGun === 'pkm' && !player.pkmNoDelay) {
+            if (!pkmDelayActive) {
+                if (isMouseDown) {
+                    pkmDelayActive = true;
+                    pkmDelayTimer = now;
+                }
+                return;
+            }
+            if (now - pkmDelayTimer < 100) return;
+        }
+
         if (now - lastShot > fr) {
             let dx = mousePos.x - player.x, dy = mousePos.y - player.y, dist = Math.hypot(dx, dy);
             if (dist === 0) return;
 
             let angle = Math.atan2(dy, dx);
+
+            // Spread logic per gun
+            let spreadDeg = 0;
             if (selectedGun === 'mp5') {
-                const spreadRad = (Math.random() - 0.5) * 2 * (10 * Math.PI / 180);
-                angle += spreadRad;
+                // SMG Converger reduces to 3°, otherwise up to 10°
+                spreadDeg = player.mp5Converger ? 3 : 10;
+            } else if (selectedGun === 'pkm') {
+                // Efficient Barrel adds 2° on top of base 3°
+                spreadDeg = player.pkmEfficientBarrel ? 5 : 3;
+            } else if (selectedGun === 'm4a1') {
+                // Performance Barrel adds 1°
+                spreadDeg = player.m4a1PerfBarrel ? 1 : 0;
+            }
+            if (spreadDeg > 0) {
+                const maxRad = spreadDeg * Math.PI / 180;
+                angle += (Math.random() - 0.5) * 2 * maxRad;
             }
 
             bullets.push({
                 x: player.x, y: player.y,
                 sx: Math.cos(angle) * player.bulletSpeed,
                 sy: Math.sin(angle) * player.bulletSpeed,
-                p: player.pierce, d: 0, hit: []
+                p: player.pierce, d: 0, hit: [],
+                gunType: selectedGun   // tag bullet with gun type for collision tuning
             });
             magAmmo--;
             lastShot = now;
-
-            if (magAmmo <= 0) {
-                startReload();
-            }
+            if (magAmmo <= 0) startReload();
         }
     }
 
@@ -1303,21 +1369,42 @@
 
         for (let i = bullets.length - 1; i >= 0; i--) {
             let b = bullets[i];
+            let bSpeed = Math.hypot(b.sx, b.sy);
             let oldX = b.x, oldY = b.y;
-            b.x += b.sx; b.y += b.sy; b.d += player.bulletSpeed;
+            b.x += b.sx; b.y += b.sy; b.d += bSpeed;
             if (b.d > player.range) { bullets.splice(i, 1); continue; }
 
-            let steps = Math.ceil(player.bulletSpeed / 4);
-            let hitThisStep = false;
+            // Per-gun hit radius and interpolation steps:
+            // AWM: fast (speed 54) → many steps, large hitbox (26px)
+            // MP5: slow (speed 14.4) → fewer steps, small hitbox (14px) — prevents over-hit
+            // M4A1/PKM: normal (18-20) → medium steps, 18px hitbox
+            let hitRadius, steps;
+            const gt = b.gunType || selectedGun;
+            if (gt === 'awm') {
+                hitRadius = 26; steps = Math.ceil(bSpeed / 3);
+            } else if (gt === 'mp5') {
+                hitRadius = 14; steps = Math.max(1, Math.ceil(bSpeed / 6));
+            } else if (gt === 'pkm') {
+                hitRadius = 20; steps = Math.ceil(bSpeed / 5);
+            } else {
+                hitRadius = 18; steps = Math.ceil(bSpeed / 5);
+            }
+
             for (let s = 1; s <= steps; s++) {
                 let checkX = oldX + (b.sx * (s / steps));
                 let checkY = oldY + (b.sy * (s / steps));
                 enemies.forEach(e => {
-                    if (Math.hypot(checkX - e.x, checkY - e.y) < 22 && !b.hit.includes(e.id)) {
-                        e.hp -= player.baseDamage * (Math.random() < player.critRate ? 2 : 1);
+                    if (Math.hypot(checkX - e.x, checkY - e.y) < hitRadius && !b.hit.includes(e.id)) {
+                        const dmgMult = Math.random() < player.critRate ? 2 : 1;
+                        const dmg = player.baseDamage * dmgMult;
+                        e.hp -= dmg;
+                        // Vampirism heal
+                        if (player.vampirism) {
+                            player.hp = Math.min(player.maxHp, player.hp + dmg * player.vampirism);
+                        }
                         b.hit.push(e.id);
                         if (b.p > 0 && b.p < 900) b.p--;
-                        else if (b.p === 0) { b.p = -1; hitThisStep = true; }
+                        else if (b.p === 0) { b.p = -1; }
                     }
                 });
             }

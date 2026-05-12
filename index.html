@@ -362,8 +362,8 @@
         inventory: [],
         gunLevels: { m4a1: 0, awm: 0, mp5: 0, pkm: 0 },
         // Ammo stock (reserve, not mag)
-        ammoStock: { m4a1: 0, awm: 0, mp5: 0, pkm: 0 },
-        // Ammo purchase count per gun per session reset at new game only? We'll persist.
+        ammoStock: { m4a1: 200, awm: 200, mp5: 200, pkm: 200 },
+        // Ammo purchase count resets each shop visit (per round)
         ammoBuyCount: { m4a1: 0, awm: 0, mp5: 0, pkm: 0 },
         moveSpeed: 3.6
     };
@@ -378,7 +378,7 @@
     const GUN_BASE = {
         m4a1: { fireRate: 250, baseDamage: 0.6, range: 750, bulletSpeed: 18, pierce: 0, isAuto: true, magBase: 30, magLv10: 45, reloadBase: 2.0, reloadLv10: 2.5, moveSpeed: 3.6 },
         awm:  { fireRate: 1000, baseDamage: 5.0, range: 3750, bulletSpeed: 54, pierce: 999, isAuto: false, magBase: 5, magLv10: 10, reloadBase: 3.0, reloadLv10: 3.0, moveSpeed: 3.6 },
-        mp5:  { fireRate: 167, baseDamage: 0.54, range: 600, bulletSpeed: 14.4, pierce: 0, isAuto: true, magBase: 40, magLv10: 60, reloadBase: 2.0, reloadLv10: 2.5, moveSpeed: 4.32 },
+        mp5:  { fireRate: 111, baseDamage: 0.54, range: 600, bulletSpeed: 14.4, pierce: 0, isAuto: true, magBase: 40, magLv10: 60, reloadBase: 2.0, reloadLv10: 2.5, moveSpeed: 4.32 },
         pkm:  { fireRate: 313, baseDamage: 0.69, range: 825, bulletSpeed: 19.8, pierce: 1, isAuto: true, magBase: 125, magLv10: 250, reloadBase: 5.0, reloadLv10: 7.0, moveSpeed: 2.52 }
     };
 
@@ -573,8 +573,8 @@
             dartLevel: 0, dartDamage: 5, dartCooldown: 5000,
             moveSpeed: 3.6,
             gunLevels: player.gunLevels || { m4a1: 0, awm: 0, mp5: 0, pkm: 0 },
-            ammoStock: player.ammoStock || { m4a1: 0, awm: 0, mp5: 0, pkm: 0 },
-            ammoBuyCount: player.ammoBuyCount || { m4a1: 0, awm: 0, mp5: 0, pkm: 0 },
+            ammoStock: player.ammoStock || { m4a1: 200, awm: 200, mp5: 200, pkm: 200 },
+            ammoBuyCount: { m4a1: 0, awm: 0, mp5: 0, pkm: 0 },
             highRound: player.highRound || 1,
             level: player.level || 1,
             xp: player.xp || 0
@@ -624,7 +624,7 @@
 
         // Ensure new fields exist for old saves
         if (!player.gunLevels) player.gunLevels = { m4a1: 0, awm: 0, mp5: 0, pkm: 0 };
-        if (!player.ammoStock) player.ammoStock = { m4a1: 0, awm: 0, mp5: 0, pkm: 0 };
+        if (!player.ammoStock) player.ammoStock = { m4a1: 200, awm: 200, mp5: 200, pkm: 200 };
         if (!player.ammoBuyCount) player.ammoBuyCount = { m4a1: 0, awm: 0, mp5: 0, pkm: 0 };
         if (!player.moveSpeed) player.moveSpeed = 3.6;
 
@@ -645,6 +645,12 @@
             document.getElementById('cloud-ui').style.opacity = '1';
             chatContainer.style.display = 'flex';
             player.shieldMax = player.shield;
+            // Fill mag from stock on first entry
+            const mag0 = getMagSize(selectedGun);
+            const stock0 = player.ammoStock[selectedGun] || 0;
+            const take0 = Math.min(mag0, stock0);
+            player.ammoStock[selectedGun] = stock0 - take0;
+            magAmmo = take0;
             lastTick = Date.now();
         }
     };
@@ -791,9 +797,16 @@
         const level = player.gunLevels[gunKey] || 0;
         const upgrades = applyGunUpgrades(gunKey);
         const cost = getGunUpgradeCost(level);
-        const nextXp = 50 * Math.pow(1.25, player.level - 1);
-        const canAfford = player.xp >= cost && level < 20;
         const isMax = level >= 20;
+
+        // Compute total XP across all levels
+        let totalXp = 0;
+        for (let lv = 1; lv < player.level; lv++) {
+            totalXp += Math.floor(50 * Math.pow(1.25, lv - 1));
+        }
+        totalXp += Math.floor(player.xp);
+
+        const canAfford = totalXp >= cost && !isMax;
 
         const div = document.createElement('div');
         div.className = 'gun-upgrade-card';
@@ -807,8 +820,8 @@
                 SPD: <b>${upgrades.bspd.toFixed(1)}</b><br>
                 PIERCE: <b>${upgrades.pierce > 100 ? 'INF' : upgrades.pierce}</b><br>
                 <br>
-                <span style="color:#aaa;font-size:10px">YOUR XP: ${Math.floor(player.xp)} / ${Math.floor(nextXp)}</span><br>
-                ${!isMax ? `<span style="color:#aaa;font-size:10px">COST: ${cost} XP</span>` : ''}
+                <span style="color:#aaa;font-size:10px">TOTAL XP: ${totalXp}</span><br>
+                ${!isMax ? `<span style="color:${canAfford ? '#2ecc71' : '#e74c3c'};font-size:10px">COST: ${cost} XP</span>` : ''}
             </div>
             ${!isMax ? `<button class="gun-upgrade-btn" id="gun-upgrade-btn" ${!canAfford ? 'disabled' : ''}>UPGRADE (${cost} XP)</button>` : ''}
             ${isMax ? `<div class="gun-maxlevel">★ MAX LEVEL ★</div>` : ''}
@@ -822,9 +835,26 @@
             div.querySelector('#gun-upgrade-btn').onclick = () => {
                 const lvl = player.gunLevels[gunKey] || 0;
                 const c = getGunUpgradeCost(lvl);
-                if (player.xp >= c && lvl < 20) {
-                    player.xp -= c;
+                if (lvl < 20) {
+                    // Compute total accumulated XP across levels
+                    let totalXp = 0;
+                    for (let lv = 1; lv < player.level; lv++) {
+                        totalXp += Math.floor(50 * Math.pow(1.25, lv - 1));
+                    }
+                    totalXp += player.xp;
+                    if (totalXp < c) return; // not enough total XP
+                    // Deduct cost from total, then recompute level+xp
+                    totalXp -= c;
+                    let newLevel = 1;
+                    while (totalXp >= Math.floor(50 * Math.pow(1.25, newLevel - 1))) {
+                        totalXp -= Math.floor(50 * Math.pow(1.25, newLevel - 1));
+                        newLevel++;
+                    }
+                    player.level = newLevel;
+                    player.xp = totalXp;
                     player.gunLevels[gunKey] = lvl + 1;
+                    updateNameUI();
+                    updateXPBar();
                     // Rebuild card
                     const newCard = buildGunUpgradeCard();
                     div.replaceWith(newCard);
@@ -844,30 +874,38 @@
         panel.className = 'ammo-panel';
         panel.innerHTML = `<div class="ammo-panel-title">BUY AMMO</div>`;
 
-        for (let i = 0; i < AMMO_TABLE.length; i++) {
-            const [cost, amt] = AMMO_TABLE[i];
+        if (buyCount >= AMMO_TABLE.length) {
+            // All tiers bought
+            const doneMsg = document.createElement('div');
+            doneMsg.style.cssText = 'color:#555;font-size:11px;text-align:center;padding:4px;';
+            doneMsg.textContent = 'MAX PURCHASES REACHED';
+            panel.appendChild(doneMsg);
+        } else {
+            // Only show current tier
+            const [cost, amt] = AMMO_TABLE[buyCount];
             const btn = document.createElement('button');
             btn.className = 'ammo-buy-btn';
-            btn.disabled = (i !== buyCount) || (player.score < cost);
-            if (i < buyCount) {
-                btn.textContent = `✓ ${amt} rounds (${cost}PT)`;
-                btn.style.color = '#555';
-            } else if (i === buyCount) {
-                btn.textContent = `+${amt} rounds — ${cost}PT`;
-            } else {
-                btn.textContent = `+${amt} rounds — ${cost}PT`;
-            }
+            btn.disabled = player.score < cost;
+            btn.textContent = `+${amt} rounds — ${cost}PT`;
             btn.onclick = () => {
-                if (i === (player.ammoBuyCount[gunKey] || 0) && player.score >= cost) {
+                if (player.score >= cost) {
                     player.score -= cost;
                     player.ammoStock[gunKey] = (player.ammoStock[gunKey] || 0) + amt;
-                    player.ammoBuyCount[gunKey] = (player.ammoBuyCount[gunKey] || 0) + 1;
+                    player.ammoBuyCount[gunKey] = buyCount + 1;
                     pointsDisplay.innerText = player.score;
                     const newPanel = buildAmmoPanel();
                     panel.replaceWith(newPanel);
                 }
             };
             panel.appendChild(btn);
+            // Show next tier hint if exists
+            if (buyCount + 1 < AMMO_TABLE.length) {
+                const [nc, na] = AMMO_TABLE[buyCount + 1];
+                const hint = document.createElement('div');
+                hint.style.cssText = 'color:#555;font-size:10px;text-align:center;margin-top:2px;';
+                hint.textContent = `Next: +${na} for ${nc}PT`;
+                panel.appendChild(hint);
+            }
         }
 
         const stockDisplay = document.createElement('div');
@@ -941,12 +979,15 @@
             enemies = []; bullets = []; darts = []; dartSubIndex = 0; dartSubTimer = 0;
             timeLeft = 20; refreshUsed = 0; tempBuff.active = false;
             isReloading = false; reloadTimeLeft = 0;
-
-            // Fill mag from stock or fresh
+            // Reset ammo buy count each round so player can buy tier-1 again
+            player.ammoBuyCount = { m4a1: 0, awm: 0, mp5: 0, pkm: 0 };
+            // Fill mag fully from stock at round start
             const mag = getMagSize(selectedGun);
-            magAmmo = mag;
-            // ammoBuyCount resets per-round? No — stock persists.
-
+            const needed = mag;
+            const stock = player.ammoStock[selectedGun] || 0;
+            const take = Math.min(needed, stock);
+            player.ammoStock[selectedGun] = stock - take;
+            magAmmo = take;
             gameState = "BATTLE"; lastTick = Date.now();
         }, 800);
     };
@@ -1012,13 +1053,8 @@
         if (gameState !== "BATTLE") return;
         const mag = getMagSize(selectedGun);
         if (magAmmo >= mag) return; // already full
-        // Take from stock or free reload
-        const needed = mag - magAmmo;
         const stock = player.ammoStock[selectedGun] || 0;
-        if (stock <= 0 && magAmmo > 0) return; // no stock but has ammo, can't reload (no infinite by default)
-        // If stock = 0 and mag = 0, can't do anything
-        // Actually: default start with mag full, need stock for reloads
-        // If purchased ammo exists, use it
+        if (stock <= 0) return; // no ammo in reserve
         isReloading = true;
         reloadTimeLeft = getReloadTime(selectedGun);
         reloadStartTime = Date.now();
@@ -1029,11 +1065,11 @@
         reloadTimeLeft = 0;
         const mag = getMagSize(selectedGun);
         const needed = mag - magAmmo;
+        if (needed <= 0) return;
         const stock = player.ammoStock[selectedGun] || 0;
         const take = Math.min(needed, stock);
         player.ammoStock[selectedGun] = stock - take;
         magAmmo += take;
-        // If mag is still 0 and no stock, nothing happens
     }
 
     const canvas = document.getElementById("game");

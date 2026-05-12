@@ -210,7 +210,7 @@
                 <div class="gun-stats">
                     FIRE RATE: <b>250ms</b><br>
                     MODE: <b>FULL-AUTO</b><br>
-                    DAMAGE: <b>0.30</b><br>
+                    DAMAGE: <b>0.45</b><br>
                     VELOCITY: <b>NORMAL</b><br>
                     PIERCE: <b>0 (BASE)</b><br>
                     RANGE: <b>750px</b><br>
@@ -224,7 +224,7 @@
                 <div class="gun-stats">
                     FIRE RATE: <b>1000ms</b><br>
                     MODE: <b>SEMI-AUTO</b><br>
-                    DAMAGE: <b>2.50</b><br>
+                    DAMAGE: <b>3.75</b><br>
                     VELOCITY: <b>EXTREME (3x)</b><br>
                     PIERCE: <b>INFINITE</b><br>
                     RANGE: <b>3750px</b><br>
@@ -238,7 +238,7 @@
                 <div class="gun-stats">
                     FIRE RATE: <b>167ms (1.5x M4A1)</b><br>
                     MODE: <b>FULL-AUTO</b><br>
-                    DAMAGE: <b>0.27 (-10%)</b><br>
+                    DAMAGE: <b>0.405 (-10%)</b><br>
                     VELOCITY: <b>-20% (14.4)</b><br>
                     PIERCE: <b>0 (BASE)</b><br>
                     RANGE: <b>600px (-20%)</b><br>
@@ -254,7 +254,7 @@
                 <div class="gun-stats">
                     FIRE RATE: <b>313ms (0.8x)</b><br>
                     MODE: <b>FULL-AUTO</b><br>
-                    DAMAGE: <b>0.345 (+15%)</b><br>
+                    DAMAGE: <b>0.5175 (+15%)</b><br>
                     VELOCITY: <b>+10% (19.8)</b><br>
                     PIERCE: <b>1 (BASE)</b><br>
                     RANGE: <b>825px (+10%)</b><br>
@@ -373,10 +373,10 @@
 
     // ALL base damage halved per request
     const GUN_BASE = {
-        m4a1: { fireRate: 250, baseDamage: 0.30, range: 750, bulletSpeed: 18, pierce: 0, isAuto: true, magBase: 30, magLv10: 45, reloadBase: 2.0, reloadLv10: 2.5, moveSpeed: 3.6, spreadDeg: 0 },
-        awm:  { fireRate: 1000, baseDamage: 2.50, range: 3750, bulletSpeed: 54, pierce: 999, isAuto: false, magBase: 5, magLv10: 10, reloadBase: 3.0, reloadLv10: 3.0, moveSpeed: 3.6, spreadDeg: 0 },
-        mp5:  { fireRate: 167, baseDamage: 0.27, range: 600, bulletSpeed: 14.4, pierce: 0, isAuto: true, magBase: 40, magLv10: 60, reloadBase: 2.0, reloadLv10: 2.5, moveSpeed: 4.32, spreadDeg: 10 },
-        pkm:  { fireRate: 313, baseDamage: 0.345, range: 825, bulletSpeed: 19.8, pierce: 1, isAuto: true, magBase: 125, magLv10: 250, reloadBase: 5.0, reloadLv10: 7.0, moveSpeed: 2.52, spreadDeg: 3, triggerDelay: 100 }
+        m4a1: { fireRate: 250, baseDamage: 0.45, range: 750, bulletSpeed: 18, pierce: 0, isAuto: true, magBase: 30, magLv10: 45, reloadBase: 2.0, reloadLv10: 2.5, moveSpeed: 3.6, spreadDeg: 0 },
+        awm:  { fireRate: 1000, baseDamage: 3.75, range: 3750, bulletSpeed: 54, pierce: 999, isAuto: false, magBase: 5, magLv10: 10, reloadBase: 3.0, reloadLv10: 3.0, moveSpeed: 3.6, spreadDeg: 0 },
+        mp5:  { fireRate: 167, baseDamage: 0.405, range: 600, bulletSpeed: 14.4, pierce: 0, isAuto: true, magBase: 40, magLv10: 60, reloadBase: 2.0, reloadLv10: 2.5, moveSpeed: 4.32, spreadDeg: 10 },
+        pkm:  { fireRate: 313, baseDamage: 0.5175, range: 825, bulletSpeed: 19.8, pierce: 1, isAuto: true, magBase: 125, magLv10: 250, reloadBase: 5.0, reloadLv10: 7.0, moveSpeed: 2.52, spreadDeg: 3, triggerDelay: 100 }
     };
 
     // Per-gun XP cost multipliers: each level costs base * gunMult * 2^currentLevel
